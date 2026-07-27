@@ -3,15 +3,18 @@ use defmt::{/*error, info, println, warn,*/ Format};
 use embassy_time::Timer;
 use embassy_rp::{gpio::{Input, Output}};//, multicore::current_core};
 
+use enumset::{enum_set, EnumSet, EnumSetType};
+
 // use std::ops::{Index, IndexMut};
 
-#[derive(Debug, Format, Clone, Copy, PartialEq, Eq)]
-#[repr(u8)]
+// #[derive(Debug, Format, Clone, Copy, PartialEq, Eq)]
+// #[repr(u8)]
 // pub enum KeyName{//     Fn1=1, Fn2, Fn3, Fn4, Fn5, Fn6,//     SigmaPlus,//     Invert,//     Sqrt,
 //     Log,//     Ln,//     Xeq,//     Sto,//     Rcl,//     RollDown,//     Sin,
 //     Cos,//     Tan,//     Enter,//     XswapY,//     PlusMinus,//     E,//     Back,
 //     Up,//     Down,//     Orange,//     OnOff,//     DecimalPoint,//     RunStop,
 //     Plus,//     Minus,//     Divide,//     Multiply,//     Number(u8),//     Error,// }
+#[derive(EnumSetType, Debug, Format)]
 pub enum KeyName{
     Number0=0, // Setting the first to a number starts an auto-numbering system
     Number1,
@@ -58,6 +61,13 @@ pub enum KeyName{
     Multiply,
     Error,
 }
+
+pub const EDIT_ENTRY: EnumSet<KeyName> =enum_set!(KeyName::Number0 | KeyName::Number1 | KeyName::Number2 |    // These all work in number entry mode
+    KeyName::Number3 |  KeyName::Number4 |  KeyName::Number5 |  
+    KeyName::Number6 |  KeyName::Number7 |  KeyName::Number8 |  
+    KeyName::Number9 | KeyName::DecimalPoint | KeyName::PlusMinus | KeyName::E | KeyName::Enter);
+
+
 // #[derive(Debug, Clone, Copy)]
 static ROW_COL_MAP: [[KeyName; 6]; 8] = [
     [KeyName::OnOff, KeyName::Number0, KeyName::DecimalPoint, KeyName::Error,  KeyName::RunStop, KeyName::Plus],
@@ -88,6 +98,10 @@ impl Keyboard {
             cols: col_pins,
             current_key: None,
         }
+    }
+
+    pub fn is_number_element(key: KeyName)->bool{
+        EDIT_ENTRY.contains(key)
     }
 
     // Scans the hardware and returns a key, mapped as defined above
@@ -122,8 +136,7 @@ impl Keyboard {
             // info!("Key {:?} pressed", ROW_COL_MAP[n_row][n_col]);
             let key = Some( ROW_COL_MAP[n_row][n_col]);
             if self.current_key == key {
-                // info!("self.current_key = key -> returning None");
-                    return None;
+                    return None;        // Need to unpress key before pressing again to get two keys
             } else {
                 self.current_key = key;
                 return match key{
@@ -145,7 +158,7 @@ impl Keyboard {
 pub static PICOTOOL_ENTRIES: [embassy_rp::binary_info::EntryAddr; 4] = [
     embassy_rp::binary_info::rp_program_name!(c"rust_button_first"),
     embassy_rp::binary_info::rp_program_description!(
-        c"your program description"
+        c"RPN calculator based on HP42"
     ),
     embassy_rp::binary_info::rp_cargo_version!(),
     embassy_rp::binary_info::rp_program_build_attribute!(),

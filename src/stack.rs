@@ -9,10 +9,10 @@ pub struct Stack{
     t: f64,
     changed: bool,
     // numbers: Vec<f64, 18>,
-    index: usize,
+    _index: usize,
 }
 
-const NUMBERS_A: &'static [f64] = &[
+const _NUMBERS_A: &'static [f64] = &[
     123456789.0,
     12345678.9,
     1234567.89,
@@ -34,7 +34,7 @@ const NUMBERS_A: &'static [f64] = &[
     0.0,
 ];
 
-const NUMBERS_B: &'static [f64] = &[
+const _NUMBERS_B: &'static [f64] = &[
     10000000000.1,
     1000000000.1,
     10000000.001,
@@ -60,20 +60,20 @@ const NUMBERS_B: &'static [f64] = &[
 impl Stack {
     pub fn new()-> Stack{
     
-        Stack { x: 6.234567, y: 10e2, z: 5.0e10, t: 08e-6, changed: false, index: 0}
+        Stack { x: 6.234567, y: 10e2, z: 5.0e10, t: 08e-6, changed: false, _index: 0}
     }
 
-    pub fn test_increment(&mut self){
-        let delta: f64 = 0.000000000000001;
-        self.x = NUMBERS_A[self.index];
-        self.y = 9.0 as f64 + delta;
-        self.z = 2.0 as f64 + delta;
-        self.t = NUMBERS_B[self.index]; // currenlty routed to .y
-        self.index = (self.index + 1) % NUMBERS_A.len();
+    // pub fn _test_increment(&mut self){
+    //     let delta: f64 = 0.000000000000001;
+    //     self.x = NUMBERS_A[self.index];
+    //     self.y = 9.0 as f64 + delta;
+    //     self.z = 2.0 as f64 + delta;
+    //     self.t = NUMBERS_B[self.index]; // currenlty routed to .y
+    //     self.index = (self.index + 1) % NUMBERS_A.len();
 
-    }
+    // }
 
-    pub fn push(&mut self, x: f64) {
+    pub fn _push(&mut self, x: f64) {
         self.t = self.z;
         self.z = self.y;
         self.y = self.x;
@@ -84,7 +84,7 @@ impl Stack {
     }
 
     // Pops and returns bottom, x, value
-    pub fn pop(&mut self)-> f64 {
+    pub fn _pop(&mut self)-> f64 {
         let temp = self.x;
         self.x = self.y;
         self.y = self.z;
@@ -96,7 +96,7 @@ impl Stack {
     pub fn set_changed(&mut self) {
         self.changed = true;
     }
-    pub fn changed(&mut self)->bool{
+    pub fn _changed(&mut self)->bool{
         self.changed
     }
     
@@ -111,17 +111,17 @@ impl Stack {
     }
 
 
-    pub fn swapx_with_new_y(&mut self, new_y: f64){
+    pub fn _swapx_with_new_y(&mut self, new_y: f64){
         self.x = self.y;
         self.y = new_y;
     }
 
 
-    pub fn get_x(&mut self)->f64{
+    pub fn _get_x(&mut self)->f64{
         return self.x;
     }
     
-    pub fn get_y(&mut self)->f64{
+    pub fn _get_y(&mut self)->f64{
         return self.y;
     }
 

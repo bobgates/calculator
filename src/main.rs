@@ -26,9 +26,9 @@ use embassy_embedded_hal::shared_bus::blocking::spi::SpiDeviceWithConfig;
 use embassy_rp::gpio::{Input, Level, Output, Pull};
 use embassy_rp::peripherals::{SPI0};
 // use embassy_rp::{Peri, PeripheralType};
-use embassy_rp::rom_data;
+// use embassy_rp::rom_data;
 use embassy_rp::spi;
-use embassy_rp::spi::{Blocking, ClkPin, Config, MisoPin, MosiPin, Spi};
+use embassy_rp::spi::{Blocking, Spi}; //, ClkPin, Config, MisoPin, MosiPin
 
 
 use embassy_sync::blocking_mutex::Mutex;
@@ -44,7 +44,7 @@ use embassy_sync::blocking_mutex::raw::NoopRawMutex;
 use embassy_executor::Spawner;
 // use embassy_rp::gpio;
 
-use embedded_graphics::mono_font::ascii::{FONT_7X13, FONT_10X20, FONT_9X18, FONT_9X18_BOLD};
+use embedded_graphics::mono_font::ascii::{FONT_7X13, FONT_10X20};//, FONT_9X18, FONT_9X18_BOLD};
 use embedded_graphics::mono_font::MonoTextStyle;
 use embedded_graphics::pixelcolor::BinaryColor;
 
@@ -58,7 +58,10 @@ use st7565::modes::GraphicsMode;
 mod keyboard;
 mod stack;
 use keyboard::Keyboard;
+// use keyboard::EDIT_ENTRY;
 
+mod line_entry;
+use line_entry::{LineEdit};
 
 
 // use defmt::{Format};
@@ -127,29 +130,20 @@ async fn main (_spawner: Spawner) {
 
     let mut page_buffer = GraphicsPageBuffer::new();
     let reset_pin = Output::new(reset, Level::Low);
-    let font = MonoTextStyle::new(&FONT_10X20, BinaryColor::On);
     // let stacknames_font = MonoTextStyle::new(&FONT_7X13, BinaryColor::On);
 
     let mut stack = stack::Stack::new();
     let display: ST7565<SPIInterface<embassy_embedded_hal::shared_bus::blocking::spi::SpiDeviceWithConfig<'_, NoopRawMutex, embassy_rp::spi::Spi<'_, SPI0, embassy_rp::spi::Blocking>, Output<'_>>, Output<'_>>, DOGL128_6, GraphicsMode<'_, 128, 8>, 128, 64, 8> = st7565::ST7565::new(display_interface, DOGL128_6)
         .into_graphics_mode(&mut page_buffer);   
-    
-    let font = MonoTextStyle::new(&FONT_10X20, BinaryColor::On);
-    let e_font = MonoTextStyle::new(&FONT_7X13, BinaryColor::On);
-    // let f_font = MonoTextStyle::new(&FONT_9X18, BinaryColor::On);
+        
 
-
-
-
-    let stacknames_font = MonoTextStyle::new(&FONT_7X13, BinaryColor::On);
-    let number_style =  DisplayStyle::E(5);
     let mut display: DisplayStruct =  DisplayStruct::new(
         display,
         reset_pin,
-        font,
-        stacknames_font,
-        e_font,
-        number_style
+        MonoTextStyle::new(&FONT_10X20, BinaryColor::On),       // Numbers
+        MonoTextStyle::new(&FONT_7X13, BinaryColor::On),        // stack names
+        MonoTextStyle::new(&FONT_7X13, BinaryColor::On),        // E
+        DisplayStyle::E(4),
     );
     
     display.set_on(true);
@@ -177,24 +171,28 @@ async fn main (_spawner: Spawner) {
     let rows = [row1, row2, row3, row4, row5, row6, row7, row8];
     let cols = [col1, col2, col3, col4, col5, col6];
 
-
-
-
     let mut keyboard = Keyboard::new(rows, cols);
-
+    // let mut editing = false;
+    let mut line_edit = LineEdit::new();
     
     loop{
-        // info!("In loop");
-        display.update_stack_display(); 
-        stack.swapxy();
-        stack.set_changed();
         let key = keyboard.scan();
         let k =  key.await;
         if k.is_some(){
-            info!("{} key pressed", k.unwrap());
+            let k = k.unwrap();
+            info!("{} key pressed", k);
+            let _ = &line_edit.process_key(k);
         }
-        
-        delay(10_000_000);
+        for c in line_edit.line.chars(){
+            info!("{}",c);
+        }
+        // info!("{}", line_edit);
+        display.update_stack_display(); 
+        stack.swapxy();
+        stack.set_changed();
+
+        // display.editing = !display.editing;
+        delay(100_000_000);     //100E6 is about once per second
     }
 
 }

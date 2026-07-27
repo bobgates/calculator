@@ -1,5 +1,5 @@
 [package]
-name = "screen_test"
+name = "calculator"
 version = "0.2.0"
 edition = "2024"
 
@@ -7,9 +7,8 @@ edition = "2024"
 # Cortex-M
 cortex-m = { version = "0.7.7" }
 cortex-m-rt = "0.7.5"
-#rp235x-hal = { version = "0.4.0", features = ["dcp-fast-f64"] } # https://github.com/rp-rs/rp-hal/tree/main/rp235x-hal
 
-# screen driver - my modified local version
+# screen driver - my modified local version to support the st7565
 st7565 = { path = "../st7565" }
 
 # Panic handler
@@ -45,9 +44,10 @@ embedded-hal = "1.0.0"
 heapless = "0.9.3"
 num-traits = { version = "0.2", default-features = false, features = ["i128"] }
 libm = "0.2.16"
+enumset = "1.1.14"
 
 
 
 [[bin]]
-name = "screen_test"    # Takes away an error about test, which doesn't
-harness = false         # work in nostd
+name = "calculator"    # Takes away an error about test, which doesn't
+harness = false        # work in nostd
