@@ -65,7 +65,8 @@ pub enum DisplayStyle{
     _ALL,
 }
 
-
+// #[derive(EnumSetType, Debug, Format)]
+// #[derive(Clone)]
 pub struct DisplayStruct <'a>{
     pub display: ST7565<SPIInterface<embassy_embedded_hal::shared_bus::blocking::spi::SpiDeviceWithConfig<'a, NoopRawMutex, embassy_rp::spi::Spi<'a, SPI0, embassy_rp::spi::Blocking>, Output<'a>>, Output<'a>>, DOGL128_6, GraphicsMode<'a, 128, 8>, 128, 64, 8>,
     reset_pin: Output<'a>,
@@ -75,7 +76,7 @@ pub struct DisplayStruct <'a>{
     // f_font: MonoTextStyle<'a, BinaryColor>,
     stack: stack::Stack,
     number_style: DisplayStyle,
-    line: LineEdit,
+    pub entry: LineEdit,
 }
 
 impl <'a> DisplayStruct <'a>{
@@ -98,15 +99,13 @@ impl <'a> DisplayStruct <'a>{
             stack_names_font,
             e_font,
             number_style,
-            line:  LineEdit::new(),
+            entry:  LineEdit::new(),
         }
     }
 
-    // pub fn set_number_style(&mut self, number_style : DisplayStyle){
-    //     self.number_style = number_style;
-    // }
-
-
+    // 
+    //
+    //
     pub fn num_to_string(&self, number: f64 )->(String<20>, Option<i32>){
         if number == 0.0 {
             let mut output: String<20>=format!("").unwrap();
@@ -126,7 +125,7 @@ impl <'a> DisplayStruct <'a>{
             let _ = output.push('0');
             return (output,Some(pos));
         } else {
-            // info!("In nts");
+            let mut a: String<20>;
             match self.number_style {
                 DisplayStyle::E(sf) => {
 
@@ -149,10 +148,8 @@ impl <'a> DisplayStruct <'a>{
                                                     // to the format statement below,
                                                     // info! gives .0 if there are no non-zero decimals
                                                     // format just doesn't return no-zero decimals
-                    let mut a: String<20> = String::from(format!("{}E{}", n, exp).unwrap());
+                    a = String::from(format!("{}E{}", n, exp).unwrap());
 
-
-                    
                     // sf here is the number of significant figures to display, 
                     // but it is being interpreted as the number of decimal places 
                     // so we need to fix this the number accordingly
@@ -172,10 +169,8 @@ impl <'a> DisplayStruct <'a>{
                     // info!("Found E at {}",p);
                         
                     if !a.contains("."){
-                        // info!("position of E: {}, sf: {} length: {}", p, sf, a.len());
                         let required = sf+2 - a.len() as i32;
                         for _i in 0..required {
-                            // info!("-");
                             a.insert(p,'0').unwrap();
                         }
                         a.insert(p, '.').unwrap();
@@ -191,18 +186,19 @@ impl <'a> DisplayStruct <'a>{
                         } else {
                                 b.push(c).unwrap();
                         }
-                    }        
-                    (a, e_pos)
-                }
+                    }   
+                    return(b, e_pos)       
+                },
                 DisplayStyle::_S(_sf) => {
-                    (format!("Not implemented").unwrap(), None)
+                    return(format!("Not implemented").unwrap(), None)
                 },
                 DisplayStyle::_FIXED => {
-                    (format!("Not implemented").unwrap(), None)
+                    return(format!("Not implemented").unwrap(), None)
                 },
                 DisplayStyle::_ALL => { 
-                    (format!("Not implemented").unwrap(), None)
+                    return(format!("Not implemented").unwrap(), None)
                 }
+
             }
         }
     }
@@ -229,8 +225,22 @@ impl <'a> DisplayStruct <'a>{
         info!("x: {}, y: {}, z: {}, t: {}", x, y, z, t);
         // let sf: i32 =  3; 
         
-        
-        let (x_buffer_str, e_pos) = (self.line.line.clone(), None::<i32>);
+        // let mut x_buffer_str: String<20>;
+        let e_pos:  Option<i32>;
+        let x_buffer_str: String<20>;
+        (x_buffer_str, e_pos) = if self.entry.editing {
+                                    info!("In editing");
+                                    (self.entry.line.clone(), None::<i32>)
+                                } else {
+                                    info!("just convert number to string");
+                                     self.num_to_string(x)
+                                };
+
+        info!("x_buffer:");
+        for c in x_buffer_str.chars(){
+            info!("{}",c);
+        }
+        info!("-----------");
 
         let _= Text::new("x", Point::new(NAME_LEFT, X_LABEL_BOTTOM), self.stack_names_font).draw(&mut self.display);
         let _ = Text::new(":", Point::new(COLON_LEFT, X_LABEL_BOTTOM), self.stack_names_font).draw(&mut self.display);

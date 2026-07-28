@@ -105,7 +105,6 @@ async fn main (_spawner: Spawner) {
 
     info!("Started");
 
-
     let pico_led = Output::new(p.PIN_25, Level::High);
     let mut flash_led = FlashLedStruct::new(pico_led, 20_000_000);
     flash_led.flash();
@@ -176,23 +175,26 @@ async fn main (_spawner: Spawner) {
     let mut line_edit = LineEdit::new();
     
     loop{
+        //100E6 is about once per second
+        delay(10_000_000); 
         let key = keyboard.scan();
         let k =  key.await;
-        if k.is_some(){
+        if k.is_none(){
+            continue;
+        } else {
             let k = k.unwrap();
             info!("{} key pressed", k);
             let _ = &line_edit.process_key(k);
+        
+            for c in line_edit.line.chars(){
+                info!("{}",c);
+            }
+            // info!("{}", line_edit);
+            display.update_stack_display(); 
+            // stack.swapxy();
+            stack.set_changed();
+            display.entry.editing = !display.entry.editing;
+                //100E6 is about once per second
         }
-        for c in line_edit.line.chars(){
-            info!("{}",c);
-        }
-        // info!("{}", line_edit);
-        display.update_stack_display(); 
-        stack.swapxy();
-        stack.set_changed();
-
-        // display.editing = !display.editing;
-        delay(100_000_000);     //100E6 is about once per second
     }
-
 }

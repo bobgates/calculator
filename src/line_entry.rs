@@ -16,22 +16,22 @@ use crate::keyboard::KeyName;
 
 #[derive(Clone, Debug)]
 pub struct LineEdit{
-    _editing: bool,
+    pub editing: bool,
     pub line: String<20>,
 }
 
 impl LineEdit{
     pub fn new()->LineEdit{
         let line = String::<20>::new();
-        let _editing = false;
-        LineEdit { _editing, line }
+        let editing = false;
+        LineEdit { editing, line }
     }
 
-    // This returns the current key 
+    // This eats the current key and puts the value in self.line
     pub fn process_key(&mut self, key: KeyName) {
 
-        if !Keyboard::is_number_element(key){
-            info!("not a number");
+        if Keyboard::is_number_element(key){           // Handle the display of 
+            info!("is a number: {}", key);
             match key{
                 KeyName::Enter => {},//----------------------------**************************************** WORK HERE
                 KeyName::Back => if self.line.len()>1{
@@ -39,7 +39,7 @@ impl LineEdit{
                 },
                 KeyName::E => if !self.line.contains('E') {              // Stops 2 E's in a row
                                     let _ = self.line.push('E');
-                                }
+                },
                 KeyName::PlusMinus => if self.line.contains('E'){       // If we're before the E, make that +-
                     if let Some(index) = self.line.find('E'){
                         if self.line.len()>(index+1){
@@ -62,37 +62,27 @@ impl LineEdit{
                             let _ =self.line.insert(0,'-');
                         }
                     }
-                } 
+                }, 
                 KeyName::DecimalPoint => if self.line.find('.').is_none() {
                     let _ = self.line.push('.');
                 }
-                _ => {} // That's all we're handling at the moment. Keyboard handling is below.
-            }
-        } else { // Processing numbers and number related keys and putting them in self.line
-            // let mut line: String<20> = String::new();
-            if keyboard::EDIT_ENTRY.contains(key){
-                match key {
-                    KeyName::Number0 => self.line.push('0').unwrap(),
-                    KeyName::Number1 => self.line.push('1').unwrap(),
-                    KeyName::Number2 => self.line.push('2').unwrap(),
-                    KeyName::Number3 => self.line.push('3').unwrap(),
-                    KeyName::Number4 => self.line.push('4').unwrap(),
-                    KeyName::Number5 => self.line.push('5').unwrap(),
-                    KeyName::Number6 => self.line.push('6').unwrap(),
-                    KeyName::Number7 => self.line.push('7').unwrap(),
-                    KeyName::Number8 => self.line.push('8').unwrap(),
-                    KeyName::Number9 => self.line.push('9').unwrap(),
+        
+                KeyName::Number0 => self.line.push('0').unwrap(),
+                KeyName::Number1 => self.line.push('1').unwrap(),
+                KeyName::Number2 => self.line.push('2').unwrap(),
+                KeyName::Number3 => self.line.push('3').unwrap(),
+                KeyName::Number4 => self.line.push('4').unwrap(),
+                KeyName::Number5 => self.line.push('5').unwrap(),
+                KeyName::Number6 => self.line.push('6').unwrap(),
+                KeyName::Number7 => self.line.push('7').unwrap(),
+                KeyName::Number8 => self.line.push('8').unwrap(),
+                KeyName::Number9 => self.line.push('9').unwrap(),
                 _ => todo!()
                 };
-            }
-            info!("number");
-
-        } 
-        //or (l, c) in a.chars().enumerate(){
-        // for c in self.line.chars().enumerate() {
-        //     info!(".{}",c.1);
-
-        // } 
+        }
+        for d in self.line.chars(){
+            info!("number: {}", d);
+        }
     }
 }
     

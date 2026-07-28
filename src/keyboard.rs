@@ -1,4 +1,4 @@
-use defmt::{/*error, info, println, warn,*/ Format};
+use defmt::{info, /*error, info, println, warn,*/ Format};
 
 use embassy_time::Timer;
 use embassy_rp::{gpio::{Input, Output}};//, multicore::current_core};
@@ -101,9 +101,12 @@ impl Keyboard {
     }
 
     pub fn is_number_element(key: KeyName)->bool{
+        info!(". in is_number_element, key is {}", key);
         EDIT_ENTRY.contains(key)
     }
 
+
+    
     // Scans the hardware and returns a key, mapped as defined above
     // if one has been pressed, else None
     pub async fn scan(&mut self) ->  Option<KeyName> {//Option<u8> {
