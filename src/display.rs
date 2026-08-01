@@ -56,8 +56,6 @@ const T_LABEL_BOTTOM: i32 = X_LABEL_BOTTOM - 3*LINE_SPACING;
 
 // It is possible to get 2.7" displays in 240x320...
 
-
-
 pub enum DisplayStyle{
     E(i32),
     _S(i32),
@@ -207,7 +205,7 @@ impl <'a> DisplayStruct <'a>{
 // change this so it changes the a in place
 
 
-    pub fn string_string(&self, a: &String<20>)->(String<20>, Option<i32>){
+    pub fn string_to_string(&self, a: &String<20>)->(String<20>, Option<i32>){
         let p = a.find("E");
         if p == None {
             return (a.clone(), None);
@@ -239,65 +237,40 @@ impl <'a> DisplayStruct <'a>{
         let _ =Text::new(&num_str, Point::new(0, 13), self.font).draw(&mut self.display);
     }
 
-
+    // Updates the display with the current stack values and the current entry line
+    // if it is active, or stack x value if it is not.
     pub fn update_stack_display(&mut self, entry_line: Option<String<20>>) {
         self.display.clear(BinaryColor::Off);
 
-        // let n_decimals = 4;
-
         let (x, y, z, t) = self.stack.fetch_values();
+        
         info!("x: {}, y: {}, z: {}, t: {}", x, y, z, t);
+        info!("self.entry_line.chars");
 
-        info!("self.entry.line.chars");
-        let mut b: String<20>=String::new();
+        let mut outstr: String<20>=String::new();
         let mut e_pos: Option<i32> = None;
-        let mut line : String<20>;
-        if let Some(line) = entry_line{ 
-            let entry_line = line;
-            for c in entry_line.chars(){
-                info!("s.e.l.c: {}.", c);
-            }
-            // let line = self.entry.clone();
-
-            info!("Calling self.string_string with self.entry.line");
-            
-            let (d, e) =  self.string_string(&entry_line);
-
-            info!{"E is at pos {}",e};
-            for c in d.chars() {
-                info!("{}", c);
-            }
+        let mut line : String<20> = String::new();
 
 
-            // let mut b: String<20>=String::new();
-            // let mut e_pos: Option<i32> = None;
-            let a = entry_line.chars();
-            for (l, c) in a.enumerate(){
+        let (x_buffer_str, epos) = 
+        if entry_line.is_none(){
+            self.num_to_string(x)
+        } else {
+            for (l, c) in entry_line.unwrap().chars().enumerate(){
+                for c in line.chars(){ info!("s.e.l.c: {}.", c);}   
                 if c == 'E' {
-                    b.push(' ').unwrap();
+                    outstr.push(' ').unwrap();
                     e_pos = Some(l.try_into().unwrap());
                 } else {
+                    e_pos = None;
                     info!("c = {}",c);        
-                    b.push(c).unwrap();  
-                }
-            }  
-        }
-
-
-        let (x_buffer_str, e_pos)=(b, e_pos);
-
-
-        info!("x_buffer_str:");
-        for i in x_buffer_str.chars(){
-            info!("bs: {}", i);
-        }
-        info!("Entry line:");
-            for x in self.entry.line.chars(){
-                info!("{}",x);
+                    outstr.push(c).unwrap();  
+                }  
             }
-        info!("\n");
+            (outstr.clone(), e_pos)
+        }; 
 
-
+        let (x_buffer_str, e_pos)=(outstr, e_pos);
         let _= Text::new("x", Point::new(NAME_LEFT, X_LABEL_BOTTOM), self.stack_names_font).draw(&mut self.display);
         let _ = Text::new(":", Point::new(COLON_LEFT, X_LABEL_BOTTOM), self.stack_names_font).draw(&mut self.display);
         let _ = Text::new(&x_buffer_str, Point::new(NUM_LEFT, X_NUM_BOTTOM), self.font).draw(&mut self.display);
