@@ -138,7 +138,7 @@ async fn main (_spawner: Spawner) {
 
     let mut display: DisplayStruct =  DisplayStruct::new(
         display,
-        // reset_pin,
+        reset_pin,
         MonoTextStyle::new(&FONT_10X20, BinaryColor::On),       // Numbers
         MonoTextStyle::new(&FONT_7X13, BinaryColor::On),        // stack names
         MonoTextStyle::new(&FONT_7X13, BinaryColor::On),        // E
@@ -183,10 +183,10 @@ async fn main (_spawner: Spawner) {
             continue;
         } else {
             let k = k.unwrap();
-            info!("{} key pressed", k);         
+            // info!("{} key pressed", k);         
             let _ = line_edit.process_key(k);
         
-            info!("Back in main loop");
+            // info!("Back in main loop");
 
             // line_edit
             let line = line_edit.get_line();

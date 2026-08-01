@@ -69,7 +69,7 @@ pub enum DisplayStyle{
 // #[derive(Clone)]
 pub struct DisplayStruct <'a>{
     pub display: ST7565<SPIInterface<embassy_embedded_hal::shared_bus::blocking::spi::SpiDeviceWithConfig<'a, NoopRawMutex, embassy_rp::spi::Spi<'a, SPI0, embassy_rp::spi::Blocking>, Output<'a>>, Output<'a>>, DOGL128_6, GraphicsMode<'a, 128, 8>, 128, 64, 8>,
-    // reset_pin: Output<'a>,
+    reset_pin: Output<'a>,
     font: MonoTextStyle<'a, BinaryColor>,
     stack_names_font: MonoTextStyle<'a, BinaryColor>,
     e_font: MonoTextStyle<'a, BinaryColor>,
@@ -80,8 +80,8 @@ pub struct DisplayStruct <'a>{
 }
 
 impl <'a> DisplayStruct <'a>{
-    pub fn new(display: ST7565<SPIInterface<embassy_embedded_hal::shared_bus::blocking::spi::SpiDeviceWithConfig<'a, NoopRawMutex, embassy_rp::spi::Spi<'a, SPI0, embassy_rp::spi::Blocking>, Output<'a>>, Output<'a>>, DOGL128_6, GraphicsMode<'a, 128, 8>, 128, 64, 8>,
-                // mut reset_pin: Output<'a>, 
+    pub fn new(mut display: ST7565<SPIInterface<embassy_embedded_hal::shared_bus::blocking::spi::SpiDeviceWithConfig<'a, NoopRawMutex, embassy_rp::spi::Spi<'a, SPI0, embassy_rp::spi::Blocking>, Output<'a>>, Output<'a>>, DOGL128_6, GraphicsMode<'a, 128, 8>, 128, 64, 8>,
+                mut reset_pin: Output<'a>, 
                 font: MonoTextStyle<'a, BinaryColor>,
                 stack_names_font: MonoTextStyle<'a, BinaryColor>,
                 e_font: MonoTextStyle<'a, BinaryColor>,
@@ -89,11 +89,11 @@ impl <'a> DisplayStruct <'a>{
                 number_style: DisplayStyle,
             ) -> Self {
         
-        // display.reset(&mut reset_pin, &mut Delay).unwrap();
+        display.reset(&mut reset_pin, &mut Delay).unwrap();
 
         Self { 
             display, 
-            // reset_pin,
+            reset_pin,
             font,
             stack: stack::Stack::new(),
             stack_names_font,
@@ -254,9 +254,9 @@ impl <'a> DisplayStruct <'a>{
         let mut line : String<20>;
         if let Some(line) = entry_line{ 
             let entry_line = line;
-            // for c in entry_line.chars(){
-            //     info!("s.e.l.c: {}.", c);
-            // }
+            for c in entry_line.chars(){
+                info!("s.e.l.c: {}.", c);
+            }
             // let line = self.entry.clone();
 
             info!("Calling self.string_string with self.entry.line");
@@ -291,6 +291,12 @@ impl <'a> DisplayStruct <'a>{
         for i in x_buffer_str.chars(){
             info!("bs: {}", i);
         }
+        info!("Entry line:");
+            for x in self.entry.line.chars(){
+                info!("{}",x);
+            }
+        info!("\n");
+
 
         let _= Text::new("x", Point::new(NAME_LEFT, X_LABEL_BOTTOM), self.stack_names_font).draw(&mut self.display);
         let _ = Text::new(":", Point::new(COLON_LEFT, X_LABEL_BOTTOM), self.stack_names_font).draw(&mut self.display);

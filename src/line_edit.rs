@@ -22,7 +22,7 @@ const EDIT_LENGTHL: usize = 20;      // Two spare characters if there are a coup
 #[derive(Clone, Debug)]
 pub struct LineEdit{
     pub editing: bool,
-    line: String<EDIT_LENGTHL>,
+    pub line: String<EDIT_LENGTHL>,
     // stack: crate::stack::Stack,
 }
 
@@ -37,7 +37,7 @@ impl LineEdit{
     pub fn process_key(&mut self, key: KeyName) {
 
         if Keyboard::is_number_element(key){           // Handle the display of 
-            info!("is a number element: {}", key);
+            // info!("is a number element: {}", key);
             self.editing = true;
             match key{
                 KeyName::Enter => {self.editing = false
