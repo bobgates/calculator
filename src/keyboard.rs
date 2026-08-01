@@ -101,8 +101,12 @@ impl Keyboard {
     }
 
     pub fn is_number_element(key: KeyName)->bool{
-        info!(". in is_number_element, key is {}", key);
-        EDIT_ENTRY.contains(key)
+        // info!(". in is_number_element, key is {}", key);
+        let c = EDIT_ENTRY.contains(key);
+        // if c {info!("---checked {} is a number_element", key)} else 
+        //     {info!("---checked {} is a NOT number_element", key)}
+        // }
+        c
     }
 
 

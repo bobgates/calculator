@@ -18,7 +18,7 @@ use embedded_graphics::text::Text;
 use heapless::{format, String};
 // use heapless::string::StringInner;
 
-use crate::line_entry::LineEdit;
+use crate::line_edit::LineEdit;
 
 use st7565::displays::DOGL128_6;
 use st7565::ST7565;
@@ -69,7 +69,7 @@ pub enum DisplayStyle{
 // #[derive(Clone)]
 pub struct DisplayStruct <'a>{
     pub display: ST7565<SPIInterface<embassy_embedded_hal::shared_bus::blocking::spi::SpiDeviceWithConfig<'a, NoopRawMutex, embassy_rp::spi::Spi<'a, SPI0, embassy_rp::spi::Blocking>, Output<'a>>, Output<'a>>, DOGL128_6, GraphicsMode<'a, 128, 8>, 128, 64, 8>,
-    reset_pin: Output<'a>,
+    // reset_pin: Output<'a>,
     font: MonoTextStyle<'a, BinaryColor>,
     stack_names_font: MonoTextStyle<'a, BinaryColor>,
     e_font: MonoTextStyle<'a, BinaryColor>,
@@ -80,8 +80,8 @@ pub struct DisplayStruct <'a>{
 }
 
 impl <'a> DisplayStruct <'a>{
-    pub fn new(mut display: ST7565<SPIInterface<embassy_embedded_hal::shared_bus::blocking::spi::SpiDeviceWithConfig<'a, NoopRawMutex, embassy_rp::spi::Spi<'a, SPI0, embassy_rp::spi::Blocking>, Output<'a>>, Output<'a>>, DOGL128_6, GraphicsMode<'a, 128, 8>, 128, 64, 8>,
-                mut reset_pin: Output<'a>, 
+    pub fn new(display: ST7565<SPIInterface<embassy_embedded_hal::shared_bus::blocking::spi::SpiDeviceWithConfig<'a, NoopRawMutex, embassy_rp::spi::Spi<'a, SPI0, embassy_rp::spi::Blocking>, Output<'a>>, Output<'a>>, DOGL128_6, GraphicsMode<'a, 128, 8>, 128, 64, 8>,
+                // mut reset_pin: Output<'a>, 
                 font: MonoTextStyle<'a, BinaryColor>,
                 stack_names_font: MonoTextStyle<'a, BinaryColor>,
                 e_font: MonoTextStyle<'a, BinaryColor>,
@@ -89,11 +89,11 @@ impl <'a> DisplayStruct <'a>{
                 number_style: DisplayStyle,
             ) -> Self {
         
-        display.reset(&mut reset_pin, &mut Delay).unwrap();
+        // display.reset(&mut reset_pin, &mut Delay).unwrap();
 
         Self { 
             display, 
-            reset_pin,
+            // reset_pin,
             font,
             stack: stack::Stack::new(),
             stack_names_font,
@@ -103,9 +103,6 @@ impl <'a> DisplayStruct <'a>{
         }
     }
 
-    // 
-    //
-    //
     pub fn num_to_string(&self, number: f64 )->(String<20>, Option<i32>){
         if number == 0.0 {
             let mut output: String<20>=format!("").unwrap();
@@ -203,6 +200,33 @@ impl <'a> DisplayStruct <'a>{
         }
     }
 
+    // Takes a string representing a number, returns
+    // the position of the E if there is one and the input string
+    // with the E replaced by a space
+
+// change this so it changes the a in place
+
+
+    pub fn string_string(&self, a: &String<20>)->(String<20>, Option<i32>){
+        let p = a.find("E");
+        if p == None {
+            return (a.clone(), None);
+        } else {
+            let mut b: String<20>=String::new();
+            let mut e_pos: Option<i32> = None;
+
+
+            for (l, c) in a.chars().enumerate(){
+                if c == 'E' {
+                    b.push(' ').unwrap();
+                    e_pos = Some(l.try_into().unwrap());
+                } else {
+                    b.push(c).unwrap();
+                }
+            }  
+            return(b, e_pos)
+        }
+    }           
 
     pub fn set_on(&mut self, on: bool) {
         info!("switch display on");
@@ -216,31 +240,57 @@ impl <'a> DisplayStruct <'a>{
     }
 
 
-    pub fn update_stack_display(&mut self) {
+    pub fn update_stack_display(&mut self, entry_line: Option<String<20>>) {
         self.display.clear(BinaryColor::Off);
 
         // let n_decimals = 4;
 
         let (x, y, z, t) = self.stack.fetch_values();
         info!("x: {}, y: {}, z: {}, t: {}", x, y, z, t);
-        // let sf: i32 =  3; 
-        
-        // let mut x_buffer_str: String<20>;
-        let e_pos:  Option<i32>;
-        let x_buffer_str: String<20>;
-        (x_buffer_str, e_pos) = if self.entry.editing {
-                                    info!("In editing");
-                                    (self.entry.line.clone(), None::<i32>)
-                                } else {
-                                    info!("just convert number to string");
-                                     self.num_to_string(x)
-                                };
 
-        info!("x_buffer:");
-        for c in x_buffer_str.chars(){
-            info!("{}",c);
+        info!("self.entry.line.chars");
+        let mut b: String<20>=String::new();
+        let mut e_pos: Option<i32> = None;
+        let mut line : String<20>;
+        if let Some(line) = entry_line{ 
+            let entry_line = line;
+            // for c in entry_line.chars(){
+            //     info!("s.e.l.c: {}.", c);
+            // }
+            // let line = self.entry.clone();
+
+            info!("Calling self.string_string with self.entry.line");
+            
+            let (d, e) =  self.string_string(&entry_line);
+
+            info!{"E is at pos {}",e};
+            for c in d.chars() {
+                info!("{}", c);
+            }
+
+
+            // let mut b: String<20>=String::new();
+            // let mut e_pos: Option<i32> = None;
+            let a = entry_line.chars();
+            for (l, c) in a.enumerate(){
+                if c == 'E' {
+                    b.push(' ').unwrap();
+                    e_pos = Some(l.try_into().unwrap());
+                } else {
+                    info!("c = {}",c);        
+                    b.push(c).unwrap();  
+                }
+            }  
         }
-        info!("-----------");
+
+
+        let (x_buffer_str, e_pos)=(b, e_pos);
+
+
+        info!("x_buffer_str:");
+        for i in x_buffer_str.chars(){
+            info!("bs: {}", i);
+        }
 
         let _= Text::new("x", Point::new(NAME_LEFT, X_LABEL_BOTTOM), self.stack_names_font).draw(&mut self.display);
         let _ = Text::new(":", Point::new(COLON_LEFT, X_LABEL_BOTTOM), self.stack_names_font).draw(&mut self.display);
@@ -249,7 +299,7 @@ impl <'a> DisplayStruct <'a>{
             let _ = Text::new("E", Point::new(NUM_LEFT + NUM_WIDTH * e_pos.unwrap() + 2, X_NUM_BOTTOM-2), self.e_font).draw(&mut self.display);
         }
 
-        let (y_buffer_str, _epos) = self.num_to_string(y);
+        let (y_buffer_str, e_pos) = self.num_to_string(y);
         let _= Text::new("y", Point::new(NAME_LEFT, Y_LABEL_BOTTOM), self.stack_names_font).draw(&mut self.display);
         let _ = Text::new(":", Point::new(COLON_LEFT, Y_LABEL_BOTTOM), self.stack_names_font).draw(&mut self.display);
         let _ = Text::new(&y_buffer_str, Point::new(NUM_LEFT, Y_NUM_BOTTOM), self.font).draw(&mut self.display);
@@ -257,7 +307,7 @@ impl <'a> DisplayStruct <'a>{
             let _ = Text::new("E", Point::new(NUM_LEFT + 10 * e_pos.unwrap() + 1, Y_NUM_BOTTOM-2), self.e_font).draw(&mut self.display);
         }
 
-        let (z_buffer_str , _epos)= self.num_to_string(z,);
+        let (z_buffer_str , e_pos)= self.num_to_string(z,);
         let _= Text::new("z", Point::new(NAME_LEFT, Z_LABEL_BOTTOM), self.stack_names_font).draw(&mut self.display);
         let _ = Text::new(":", Point::new(COLON_LEFT, Z_LABEL_BOTTOM), self.stack_names_font).draw(&mut self.display);
         let _ = Text::new(&z_buffer_str, Point::new(NUM_LEFT, Z_NUM_BOTTOM), self.font).draw(&mut self.display);
@@ -265,17 +315,18 @@ impl <'a> DisplayStruct <'a>{
             let _ = Text::new("E", Point::new(NUM_LEFT + 10 * e_pos.unwrap() + 2, Z_NUM_BOTTOM-2), self.e_font).draw(&mut self.display);
         }
 
-        let (t_buffer_str, _epos) = self.num_to_string(t);
+        let (t_buffer_str, e_pos) = self.num_to_string(t);
         let _= Text::new("t", Point::new(NAME_LEFT, T_LABEL_BOTTOM), self.stack_names_font).draw(&mut self.display);
         let _ = Text::new(":", Point::new(COLON_LEFT, T_LABEL_BOTTOM), self.stack_names_font).draw(&mut self.display);
         let _ = Text::new(&t_buffer_str, Point::new(NUM_LEFT, T_NUM_BOTTOM), self.font).draw(&mut self.display);
         if e_pos.is_some() {
-            let _ = Text::new("E", Point::new(NUM_LEFT + 10 * e_pos.unwrap() + 2, T_NUM_BOTTOM-2), self.e_font).draw(&mut self.display);
-        }
+        //     let _ = Text::new("E", Point::new(NUM_LEFT + 10 * e_pos.unwrap() + 2, T_NUM_BOTTOM-2), self.e_font).draw(&mut self.display);
+        // }
 
         // self.display.reset(&mut self.reset_pin, &mut Delay).unwrap();
         self.display.flush().unwrap();       // Flushes internal buffer to the display
 
-    }
+        }
 
+    }
 }

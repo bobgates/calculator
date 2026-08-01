@@ -60,8 +60,8 @@ mod stack;
 use keyboard::Keyboard;
 // use keyboard::EDIT_ENTRY;
 
-mod line_entry;
-use line_entry::{LineEdit};
+mod line_edit;
+use line_edit::{LineEdit};
 
 
 // use defmt::{Format};
@@ -138,7 +138,7 @@ async fn main (_spawner: Spawner) {
 
     let mut display: DisplayStruct =  DisplayStruct::new(
         display,
-        reset_pin,
+        // reset_pin,
         MonoTextStyle::new(&FONT_10X20, BinaryColor::On),       // Numbers
         MonoTextStyle::new(&FONT_7X13, BinaryColor::On),        // stack names
         MonoTextStyle::new(&FONT_7X13, BinaryColor::On),        // E
@@ -148,7 +148,7 @@ async fn main (_spawner: Spawner) {
     display.set_on(true);
     let _ = display.display.flush();
     display.set_on(true);
-    display.update_stack_display();
+    display.update_stack_display(None);
 
     // Keyboard pins
     let row1 = Input::new(p.PIN_2, Pull::Down);
@@ -183,14 +183,14 @@ async fn main (_spawner: Spawner) {
             continue;
         } else {
             let k = k.unwrap();
-            info!("{} key pressed", k);
-            let _ = &line_edit.process_key(k);
+            info!("{} key pressed", k);         
+            let _ = line_edit.process_key(k);
         
-            for c in line_edit.line.chars(){
-                info!("{}",c);
-            }
-            // info!("{}", line_edit);
-            display.update_stack_display(); 
+            info!("Back in main loop");
+
+            // line_edit
+            let line = line_edit.get_line();
+            display.update_stack_display(Some(line)); 
             // stack.swapxy();
             stack.set_changed();
             display.entry.editing = !display.entry.editing;
