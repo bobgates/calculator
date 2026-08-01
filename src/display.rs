@@ -74,6 +74,7 @@ pub struct DisplayStruct <'a>{
     // f_font: MonoTextStyle<'a, BinaryColor>,
     stack: stack::Stack,
     number_style: DisplayStyle,
+    eline : Option<String<20>>,
     pub entry: LineEdit,
 }
 
@@ -97,11 +98,12 @@ impl <'a> DisplayStruct <'a>{
             stack_names_font,
             e_font,
             number_style,
-            entry:  LineEdit::new(),
+            eline: None,
+            entry: LineEdit::new(),
         }
     }
 
-    pub fn num_to_string(&self, number: f64 )->(String<20>, Option<i32>){
+    pub fn num_to_string(&mut self, number: f64 )->(String<20>, Option<i32>){
         if number == 0.0 {
             let mut output: String<20>=format!("").unwrap();
             let _ = output.push('0');
@@ -144,6 +146,7 @@ impl <'a> DisplayStruct <'a>{
                                                     // info! gives .0 if there are no non-zero decimals
                                                     // format just doesn't return no-zero decimals
                     a = String::from(format!("{}E{}", n, exp).unwrap());
+                    self.eline = Some(a.clone());
 
                     // sf here is the number of significant figures to display, 
                     // but it is being interpreted as the number of decimal places 
@@ -179,7 +182,7 @@ impl <'a> DisplayStruct <'a>{
                             b.push(' ').unwrap();
                             e_pos = Some(l.try_into().unwrap());
                         } else {
-                                b.push(c).unwrap();
+                            b.push(c).unwrap();
                         }
                     }   
                     return(b, e_pos)       
@@ -205,26 +208,26 @@ impl <'a> DisplayStruct <'a>{
 // change this so it changes the a in place
 
 
-    pub fn string_to_string(&self, a: &String<20>)->(String<20>, Option<i32>){
-        let p = a.find("E");
-        if p == None {
-            return (a.clone(), None);
-        } else {
-            let mut b: String<20>=String::new();
-            let mut e_pos: Option<i32> = None;
+    // pub fn string_to_string(&self, a: &String<20>)->(String<20>, Option<i32>){
+    //     let p = a.find("E");
+    //     if p == None {
+    //         return (a.clone(), None);
+    //     } else {
+    //         let mut b: String<20>=String::new();
+    //         let mut e_pos: Option<i32> = None;
 
 
-            for (l, c) in a.chars().enumerate(){
-                if c == 'E' {
-                    b.push(' ').unwrap();
-                    e_pos = Some(l.try_into().unwrap());
-                } else {
-                    b.push(c).unwrap();
-                }
-            }  
-            return(b, e_pos)
-        }
-    }           
+    //         for (l, c) in a.chars().enumerate(){
+    //             if c == 'E' {
+    //                 b.push(' ').unwrap();
+    //                 e_pos = Some(l.try_into().unwrap());
+    //             } else {
+    //                 b.push(c).unwrap();
+    //             }
+    //         }  
+    //         return(b, e_pos)
+    //     }
+    // }           
 
     pub fn set_on(&mut self, on: bool) {
         info!("switch display on");
@@ -249,34 +252,39 @@ impl <'a> DisplayStruct <'a>{
 
         let mut outstr: String<20>=String::new();
         let mut e_pos: Option<i32> = None;
-        let mut line : String<20> = String::new();
+        let mut line : Option<String<20>> = None;
 
 
-        let (x_buffer_str, epos) = 
+        let  (outstr, e_pos) = 
         if entry_line.is_none(){
             self.num_to_string(x)
         } else {
             for (l, c) in entry_line.unwrap().chars().enumerate(){
-                for c in line.chars(){ info!("s.e.l.c: {}.", c);}   
+                // for c in line.chars(){ 
+                info!("s.e.l.c: {}|", c);
                 if c == 'E' {
                     outstr.push(' ').unwrap();
                     e_pos = Some(l.try_into().unwrap());
+
                 } else {
-                    e_pos = None;
+                    // e_pos = None;
                     info!("c = {}",c);        
                     outstr.push(c).unwrap();  
                 }  
             }
-            (outstr.clone(), e_pos)
+            (outstr, e_pos)
         }; 
 
-        let (x_buffer_str, e_pos)=(outstr, e_pos);
+        for i in outstr.chars(){ info!("outstr.chars: {}.", i);}
+        info!("e_pos: {:?}", e_pos);
+        let x_buffer_str = outstr.clone();
         let _= Text::new("x", Point::new(NAME_LEFT, X_LABEL_BOTTOM), self.stack_names_font).draw(&mut self.display);
         let _ = Text::new(":", Point::new(COLON_LEFT, X_LABEL_BOTTOM), self.stack_names_font).draw(&mut self.display);
         let _ = Text::new(&x_buffer_str, Point::new(NUM_LEFT, X_NUM_BOTTOM), self.font).draw(&mut self.display);
         if e_pos.is_some() {
             let _ = Text::new("E", Point::new(NUM_LEFT + NUM_WIDTH * e_pos.unwrap() + 2, X_NUM_BOTTOM-2), self.e_font).draw(&mut self.display);
         }
+        // let e_pos = 
 
         let (y_buffer_str, e_pos) = self.num_to_string(y);
         let _= Text::new("y", Point::new(NAME_LEFT, Y_LABEL_BOTTOM), self.stack_names_font).draw(&mut self.display);
