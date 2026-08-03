@@ -65,7 +65,8 @@ pub enum KeyName{
 pub const EDIT_ENTRY: EnumSet<KeyName> =enum_set!(KeyName::Number0 | KeyName::Number1 | KeyName::Number2 |    // These all work in number entry mode
     KeyName::Number3 |  KeyName::Number4 |  KeyName::Number5 |  
     KeyName::Number6 |  KeyName::Number7 |  KeyName::Number8 |  
-    KeyName::Number9 | KeyName::DecimalPoint | KeyName::PlusMinus | KeyName::E | KeyName::Enter);
+    KeyName::Number9 | KeyName::DecimalPoint | 
+    KeyName::PlusMinus | KeyName::E | KeyName::Enter | KeyName::Back);
 
 
 // #[derive(Debug, Clone, Copy)]
@@ -101,12 +102,7 @@ impl Keyboard {
     }
 
     pub fn is_number_element(key: KeyName)->bool{
-        // info!(". in is_number_element, key is {}", key);
-        let c = EDIT_ENTRY.contains(key);
-        // if c {info!("---checked {} is a number_element", key)} else 
-        //     {info!("---checked {} is a NOT number_element", key)}
-        // }
-        c
+        EDIT_ENTRY.contains(key)
     }
 
 

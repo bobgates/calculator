@@ -1,3 +1,5 @@
+use defmt::{info};
+
 
 #[derive(Copy, Clone)]
 
@@ -63,21 +65,14 @@ impl Stack {
         Stack { x: 6.234567, y: 10e2, z: 5.0e10, t: 08e-6, changed: false, _index: 0}
     }
 
-    // pub fn _test_increment(&mut self){
-    //     let delta: f64 = 0.000000000000001;
-    //     self.x = NUMBERS_A[self.index];
-    //     self.y = 9.0 as f64 + delta;
-    //     self.z = 2.0 as f64 + delta;
-    //     self.t = NUMBERS_B[self.index]; // currenlty routed to .y
-    //     self.index = (self.index + 1) % NUMBERS_A.len();
 
-    // }
-
-    pub fn _push(&mut self, x: f64) {
+    pub fn push(&mut self, x: f64) {
+        info!("Pushed {} onto stack", x);
         self.t = self.z;
         self.z = self.y;
         self.y = self.x;
         self.x = x;
+        info!("Stack is now x: {}, y: {}, z: {}, t: {}", self.x, self.y, self.z, self.t);                   //
         // self.x = entry;   /
         self.changed = true;
         // Leaves x in y and in x
