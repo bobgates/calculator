@@ -270,9 +270,12 @@ impl <'a> DisplayStruct <'a>{
 
                     // backspace if only one character, replace with 0.000e0
 
+                    // backspace if invalid character, replace with 0.000e0
+
                     // } else {
                     //     info!("Unknown character in entry line: {}", c);
 
+                    //1E is response to 
 
                     // chech
 
