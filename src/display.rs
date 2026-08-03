@@ -231,7 +231,7 @@ impl <'a> DisplayStruct <'a>{
 
         let (x, y, z, t) = self.stack.fetch_values();                   // This seems to work
 
-        info!("In update stack display\nx: {}, y: {}, z: {}, t: {}", x, y, z, t);
+        // info!("In update stack display\nx: {}, y: {}, z: {}, t: {}", x, y, z, t);
 
         let mut outstr: String<20>=String::new();
         let mut e_pos: Option<i32> = None;
@@ -240,20 +240,45 @@ impl <'a> DisplayStruct <'a>{
         
         let  (outstr, e_pos) = 
             if entry_line.is_none(){
-                info!("No entry line, so display x: {}", x);
+                // info!("No entry line, so display x: {}", x);
                 self.num_to_string(x)
             } else {
                 for (l, c) in entry_line.unwrap().chars().enumerate(){
                     // for c in line.chars(){ 
                     // info!("s.e.l.c: {}|", c);
-                    if c == 'E' {
-                        outstr.push('E').unwrap();                     
-                        // info!("c4 = {}",'E'); 
-                        e_pos = Some(l.try_into().unwrap());
+                    if c == '.' {
+                        outstr.push('.').unwrap();
+                        // info!("c1 = {}",'.'); 
+                    } else if c == '-' {
+                        outstr.push('-').unwrap();      // Needs check for E
+                        // info!("c2 = {}",'-'); 
+                    } else if c.is_ascii_digit() {
+                        outstr.push(c).unwrap();
+                        // info!("c3 = {}",c);        
+                    } else if c == 'E' {
+                        if outstr.len() == 0 {
+                            outstr.push('1').unwrap();
+                            e_pos = Some(1);
+                            outstr.push('E').unwrap(); 
+                        } else {
+                            e_pos = Some(l.try_into().unwrap());
+                            outstr.push('E').unwrap(); 
+                        }
+                    // } else if c=='{}
+
+                    // plusminus
+
+                    // backspace if only one character, replace with 0.000e0
+
+                    // } else {
+                    //     info!("Unknown character in entry line: {}", c);
+
+
+                    // chech
 
                     } else {
+                        info!("--- Not processed: key is {}", c);
                         e_pos = None;
-                        // info!("c3 = {}",c);        
                         outstr.push(c).unwrap();  
                     }  
                 }

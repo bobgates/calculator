@@ -130,7 +130,7 @@ impl NumberEdit{
     // calcs
     pub fn process_key(&mut self, key: KeyName) -> Option<f64> {
         if Keyboard::is_number_element(key){           // Handle the display of 
-            info!("Key {} is valid in the number editor", key);
+            // info!("Key {} is valid in the number editor", key);
             self.process_number_keys(key)
         } else { 
             None

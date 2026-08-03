@@ -219,16 +219,6 @@ async fn main (_spawner: Spawner) {
             info!("---------------");
 
 
-
-// When hitting enter, the stack updates fine, but the status doesn't change to editing = false, 
-//so the next time enter is hit, it goes into editing mode again.  Need to fix this. STOP EDITING MODE
-
-// After entering a number and pushing it onto the stack, the bottom level
-// of the stack should be in non-editing mode and showing the whole shebang.
-
-
-
-
             display.update_stack_display(Some(number_str));
             // stack.swapxy();
             // stack.set_changed();                                            //
@@ -239,4 +229,12 @@ async fn main (_spawner: Spawner) {
     }
 
 }
+
+// When hitting enter, the stack updates fine, but the status doesn't change to editing = false, 
+//so the next time enter is hit, it goes into editing mode again.  Need to fix this. STOP EDITING MODE
+
+// After entering a number and pushing it onto the stack, the bottom level
+// of the stack should be in non-editing mode and showing the whole shebang.
+
+// Add _ to maths editing line
 

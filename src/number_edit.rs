@@ -33,28 +33,40 @@ impl NumberEdit{
         NumberEdit { editing, line}//, stack }
     }
 
+    pub fn start_editing(&mut self){
+        self.editing = true;
+    }
+
+    pub fn stop_editing(&mut self){
+        self.editing = false;
+    }
+
     pub fn process_number_keys(&mut self, key: KeyName)->Option<f64> {
         match key{
             KeyName::Enter => {
                 if self.editing {
-                    for c in self.line.chars() {
-                        info!("process_number_keys: line char: {}", c);
-                    }
+                    // for c in self.line.chars() {
+                    //     info!("process_number_keys: line char: {}", c);
+                    // }
 
                     let result = self.line.parse::<f64>();
                     if result.is_ok() {
                         let a = result.unwrap();
-                        info!("result is ok, parsed value: {}", a);
-                        info!("process_number_keys: set editing to FALSE");
-                        self.editing = false;
+                        info!("    result is ok, parsed value: {}", a);
+                        // info!("process_number_keys: set editing to FALSE");
+                        self.stop_editing();
                         return Some(a);
                     } else {
-                        info!("process_number_keys: parse failed, still editing");
+                        info!("    result is not ok");
+                        for c in self.line.chars() {
+                            info!("****** process_number_keys: line char: {}", c);
+                        }
+                        // info!("process_number_keys: parse failed, still editing");
                     } 
                     return None;
                 } else {
                     info!("process_number_keys: set editing to TRUE");
-                    self.editing = true;                                            // !todo this is wrong...
+                    self.start_editing();                                            // !todo this is wrong...
                 }
             },                          //----------------------------**************************************** WORK HERE
             KeyName::Back => 
@@ -134,9 +146,9 @@ impl NumberEdit{
     // calcs
     pub fn process_key(&mut self, key: KeyName) -> Option<f64> {
         if Keyboard::is_number_element(key){           // Handle the display of 
-            info!("Key {} is valid in the number editor", key);
             self.process_number_keys(key)
         } else { 
+            info!("Key {} is not valid in the number editor", key);
             None
         }
     }
