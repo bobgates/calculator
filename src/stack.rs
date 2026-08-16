@@ -67,6 +67,13 @@ pub struct Stack{
     _index: usize,
 }
 
+pub enum Entry {
+    X,
+    Y,
+    Z,
+    T,
+}
+
 const _NUMBERS_A: &'static [f64] = &[
     123456789.0,
     12345678.9,
@@ -120,7 +127,7 @@ impl Stack {
 
 
     pub fn push(&mut self, x: f64) {
-        info!("Pushed {} onto stack", x);
+        info!("stack: Pushed {} onto stack", x);
         self.t = self.z;
         self.z = self.y;
         self.y = self.x;

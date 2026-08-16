@@ -4,8 +4,13 @@
       "name": "Default",
       "files": [
         ".DS_Store",
+        "src/line_edit.rs",
+        ".vscode/changelists.json",
+        "src/display.rs",
         "src/main.rs",
-        ".vscode/changelists.json"
+        "src/stack.rs",
+        "\"Tips and conversions\"",
+        "\"Tips and conversions.txt\""
       ]
     }
   ],

@@ -1,0 +1,10 @@
+To convert from static_str to heap_str
+on the RP2350 code in Rust.
+
+
+use core::fmt::Write;
+use heapless::String;
+
+let static_str: &'static str = "hello";
+let mut heap_str: String<32> = String::new();
+write!(heap_str, "{}", static_str).unwrap();

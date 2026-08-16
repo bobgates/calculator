@@ -42,14 +42,13 @@ impl LineEdit{
     }
 
     pub fn process_number_keys(&mut self, key: KeyName)->Option<f64> {
-        //if Keyboard
         if Keyboard::is_number_element(key){    
         match key{
             KeyName::Enter => {
                 if self.editing {
-                    // for c in self.line.chars() {
-                    //     info!("process_number_keys: line char: {}", c);
-                    // }
+                    for c in self.line.chars() {
+                        info!("process_number_keys: line char: {}", c);
+                    }
 
                     let result = self.line.parse::<f64>();
                     if result.is_ok() {
@@ -90,7 +89,7 @@ impl LineEdit{
                         if self.line.as_bytes()[index+1]==b'-'{
                             self.line.remove(index+1);
                         } else {
-                            if self.line.len()==(index+1){
+                            if self.line.len()<EDIT_LENGTH{
                                 let _ =self.line.insert(index+1, '-');
                             }
                         }
@@ -100,12 +99,13 @@ impl LineEdit{
                         }
                     }
                 } else { // Deal with the case of the mantissa being - or not -
+                    info!("+- mantissa");
                     if self.line.chars().nth(0) == Some('-'){
                         let _a: String<20> = self.line.chars().skip(1).collect();
                     } else {
                         if self.line.len()<EDIT_LENGTH{
                             let _ =self.line.insert(0,'-');
-                            
+                            info!("Put minus in front");
                         } else {
                             info!("In KeyName::PlusMinus, last line, shouldn't have got here.")
                         }
@@ -138,9 +138,13 @@ impl LineEdit{
         
         let result = self.line.parse::<f64>();
 
-        // info!("before nums:");
-        result.ok()      
-
+        let result: Option<f64> = if result.is_ok() {
+            info!("result: {}", result.clone().unwrap());
+            Some(result.unwrap())
+        } else {
+            None
+        };
+        result
     }
 
 
@@ -150,7 +154,7 @@ impl LineEdit{
         if Keyboard::is_number_element(key){           // Handle the display of 
             self.process_number_keys(key)
         } else { 
-            info!("Key {} is not valid in the number editor", key);
+            info!("line_edit Key {} is not valid in the number editor", key);
             None
         }
     }

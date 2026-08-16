@@ -1,6 +1,8 @@
 
 // use cortex_m::asm::delay;
 use defmt::info;
+use core::convert::Into;
+use core::fmt::Write;
 use core::f64;
 // use core::num;
 use display_interface_spi::SPIInterface;
@@ -31,6 +33,9 @@ use embassy_rp::peripherals::{SPI0};
 use embassy_sync::blocking_mutex::raw::NoopRawMutex;
 
 use crate::stack;
+use crate::stack::Stack;
+use crate::stack::Entry;
+
 use num_traits::float::FloatCore;
 
 
@@ -280,21 +285,14 @@ impl <'a> DisplayStruct <'a>{
                     }  
                 }
                 for a in outstr.chars() {
-                    info!("entry_line = {}", a);
+                    info!("display: entry_line = {}", a);
                 }
-                info!("epos = {}",e_pos);
+                info!("display: epos = {} in update_stack_display",e_pos);
                 (outstr, e_pos)
             }; 
 
 
-        let x_buffer_str = outstr.clone();
-        let _= Text::new("x", Point::new(NAME_LEFT, X_LABEL_BOTTOM), self.stack_names_font).draw(&mut self.display);
-        let _ = Text::new(":", Point::new(COLON_LEFT, X_LABEL_BOTTOM), self.stack_names_font).draw(&mut self.display);
-        let _ = Text::new(&x_buffer_str, Point::new(NUM_LEFT, X_NUM_BOTTOM), self.font).draw(&mut self.display);
-        if e_pos.is_some() {
-            let _ = Text::new("E", Point::new(NUM_LEFT + NUM_WIDTH * e_pos.unwrap() + 2, X_NUM_BOTTOM-2), self.e_font).draw(&mut self.display);
-        }
-
+ 
         let (y_buffer_str, e_pos) = self.num_to_string(y);
         let _= Text::new("y", Point::new(NAME_LEFT, Y_LABEL_BOTTOM), self.stack_names_font).draw(&mut self.display);
         let _ = Text::new(":", Point::new(COLON_LEFT, Y_LABEL_BOTTOM), self.stack_names_font).draw(&mut self.display);
@@ -322,6 +320,65 @@ impl <'a> DisplayStruct <'a>{
         // self.display.reset(&mut self.reset_pin, &mut Delay).unwrap();
         self.display.flush().unwrap();       // Flushes internal buffer to the display
 
+    }
+
+    fn output_line(e: crate::stack::Entry, text : String<20>, e_pos: Option<u32>){
+
+        let label_bottom = match e {
+            stack::Entry::X => {X_LABEL_BOTTOM},
+            stack::Entry::Y => {Y_LABEL_BOTTOM},
+            stack::Entry::Z => {Z_LABEL_BOTTOM},
+            stack::Entry::T => {T_LABEL_BOTTOM},
+        };
+
+        let number_bottom = match e {
+            stack::Entry::X => {X_NUM_BOTTOM},
+            stack::Entry::Y => {Y_NUM_BOTTOM},
+            stack::Entry::Z => {Z_NUM_BOTTOM},
+            stack::Entry::T => {T_NUM_BOTTOM},
+        };
+
+        let s: &'static str = "hello";
+
+        let mut heap_str: String<20> = String::new();
+        
+        
+        
+        let entry: String<20> = match e {
+            stack::Entry::X => {heap_str},
+            stack::Entry::Y => {String::from("y:")},
+            stack::Entry::Z => {String::from("z:")},
+            stack::Entry::T => {String::from("t:")},
+        };
+
+        let x_buffer_str: String<20> = x.clone();
+        let _= Text::new(entry, Point::new(NAME_LEFT, label_bottom), self.stack_names_font).draw(&mut self.display);
+        let _ = Text::new(":", Point::new(COLON_LEFT, label_bottom), self.stack_names_font).draw(&mut self.display);
+        let _ = Text::new(&x_buffer_str, Point::new(NUM_LEFT, X_NUM_BOTTOM), self.font).draw(&mut self.display);
+        if e_pos.is_some() {
+            let _ = Text::new("E", Point::new(NUM_LEFT + NUM_WIDTH * e_pos.unwrap() + 2, X_NUM_BOTTOM-2), self.e_font).draw(&mut self.display);
+        }
+
+
+
+
+
+
+
+
+  const NAME_LEFT: i32 = 1;
+const COLON_LEFT: i32 = 6;
+const NUM_LEFT: i32 = 15; 
+const NUM_WIDTH: i32 = 10;
+const LINE_SPACING: i32 = 15;
+const X_NUM_BOTTOM: i32 = 62;
+const Y_NUM_BOTTOM: i32 = X_NUM_BOTTOM - LINE_SPACING;
+const Z_NUM_BOTTOM: i32 = X_NUM_BOTTOM - 2*LINE_SPACING;
+const T_NUM_BOTTOM: i32 = X_NUM_BOTTOM - 3*LINE_SPACING;
+const label_bottom: i32 = 59;
+const Y_LABEL_BOTTOM: i32 = label_bottom - LINE_SPACING;
+const Z_LABEL_BOTTOM: i32 = label_bottom - 2*LINE_SPACING;
+const T_LABEL_BOTTOM: i32 = label_bottom - 3*LINE_SPACING;      
     }
 
 }

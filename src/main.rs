@@ -197,12 +197,14 @@ async fn main (_spawner: Spawner) {
             let result = line_edit.process_key(k);      
             info!("Result from line_edit::process_key: {:?}", result);
 
+
+
             if let Some(number) = result {
-                info!("Some result: {}", &result.unwrap());
+                info!("line_edit::process_key: Some result: {}", &result.unwrap());
                 display.push_stack(number);
                 display.update_stack_display(None);
             } else {
-                info!("No result");
+                info!("main::process_key: NO VALID NUMBER");
             }
         
             // info!("Back in main loop");
@@ -211,7 +213,7 @@ async fn main (_spawner: Spawner) {
             let mut number_str: String<20> = String::new();
             
 
-            info!("Number Buffer");
+            info!("main: Number Buffer");
             for c in line_edit.get_number().chars() {
                 info!("-- {}", c);
                 number_str.push(c).unwrap();
