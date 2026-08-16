@@ -1,0 +1,18 @@
+{
+  "changelists": [
+    {
+      "name": "Default",
+      "files": [
+        ".DS_Store",
+        ".vscode/changelists.json",
+        "src/stack.rs",
+        "src/keyboard.rs",
+        "src/display.rs",
+        "src/main.rs",
+        "src/number_edit.rs",
+        "src/line_edit.rs"
+      ]
+    }
+  ],
+  "active": "Default"
+}

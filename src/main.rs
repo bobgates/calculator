@@ -64,8 +64,8 @@ use keyboard::Keyboard;
 
 mod stack;
 
-mod number_edit;
-use number_edit::{NumberEdit};
+mod line_edit;
+use line_edit::{LineEdit};
 
 
 // use defmt::{Format};
@@ -178,7 +178,7 @@ async fn main (_spawner: Spawner) {
 
     let mut keyboard = Keyboard::new(rows, cols);
     // let mut editing = false;
-    let mut number_edit = NumberEdit::new();
+    let mut number_edit = LineEdit::new();
     
     // let mut stack = stack::Stack::new();                                        // creation of the stack object
 
@@ -188,7 +188,7 @@ async fn main (_spawner: Spawner) {
         //100E6 is about once per second
         delay(10_000_000); 
         let key = keyboard.scan();
-        let k =  key.await;
+        let k: Option<keyboard::KeyName> =  key.await;
         if k.is_none(){
             continue;
         } else {

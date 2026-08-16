@@ -1,6 +1,59 @@
 use defmt::{info};
 
+use embassy_rp::pio::program::MovOperation::Invert;
+use libm::{*};
 
+use crate::keyboard::KeyName;
+// use keyboard::KeyName::{*};
+
+// use crate::keyboard::KeyName::{Sqrt, XswapY};
+
+// pub enum KeyName{
+//     Number0 = 0, // Setting the first to a number starts an auto-numbering system
+//     Number1,
+//     Number2,
+//     Number3,
+//     Number4,
+//     Number5,    //5
+//     Number6,
+//     Number7,
+//     Number8,
+//     Number9,
+//     Fn1,        //10
+//     Fn2, 
+//     Fn3, 
+//     Fn4, 
+//     Fn5,        
+//     Fn6,        //15
+//     SigmaPlus,
+//     Invert,
+//     Sqrt,
+//     Log,        
+//     Ln,         //20
+//     Xeq,
+//     Sto,
+//     Rcl,
+//     RollDown,   
+//     Sin,        //25
+//     Cos,
+//     Tan,
+//     Enter,
+//     XswapY,     
+//     PlusMinus,  //30
+//     E,
+//     Back,
+//     Up,
+//     Down,       
+//     Orange,     //35
+//     OnOff,
+//     DecimalPoint,
+//     RunStop,
+//     Plus,       
+//     Minus,      //40
+//     Divide,
+//     Multiply,
+//     Error,
+// }
 #[derive(Copy, Clone)]
 
 
@@ -119,6 +172,52 @@ impl Stack {
     pub fn _get_y(&mut self)->f64{
         return self.y;
     }
+
+    pub fn operate(mut self, key: KeyName){
+
+        let mut x = self.x;
+        let mut y = self.y;
+
+        // Changes x only:
+        match key {
+
+            // SIGMA+
+            KeyName::Invert => x = 1.0f64/x,
+            KeyName::Sqrt => x = sqrt(x),
+            KeyName::Log => x = log10(x),
+            KeyName::Ln => x = log(x),
+            //XEQ
+
+            //STORE RECALL ROLLDOWN
+            KeyName::Sin => x = sin(x),
+            KeyName::Cos => x = cos(x),
+            KeyName::Tan => x = tan(x),
+
+            // KeyName::Enter
+            KeyName::XswapY => { 
+                        let temp: f64 = x;
+                        x=y;
+                        y=temp;},
+            KeyName::PlusMinus => x=-x,
+            KeyName::E => x = exp(x),
+//            KeyName::Back => ------------------------------ valid only in data entry
+
+            
+
+
+            _ =>  info!("this key isn't implemented yet"),
+        }
+        self.x = x;
+        self.y = y;
+
+
+        return
+
+
+
+    }
+
+
 
 
 }

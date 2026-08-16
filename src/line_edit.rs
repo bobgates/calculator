@@ -20,17 +20,17 @@ use crate::keyboard::KeyName;
 const EDIT_LENGTH: usize = 20;      // Two spare characters if there are a couple of off by 1 errors!
 
 #[derive(Clone, Debug)]
-pub struct NumberEdit{
+pub struct LineEdit{
     pub editing: bool,
     pub line: String<EDIT_LENGTH>,
     // stack: crate::stack::Stack,
 }
 
-impl NumberEdit{
-    pub fn new( /*stack: crate::stack::Stack*/)->NumberEdit{
+impl LineEdit{
+    pub fn new( /*stack: crate::stack::Stack*/)->LineEdit{
         let line = String::<EDIT_LENGTH>::new();
         let editing = false;
-        NumberEdit { editing, line}//, stack }
+        LineEdit { editing, line}//, stack }
     }
 
     pub fn start_editing(&mut self){
@@ -42,6 +42,8 @@ impl NumberEdit{
     }
 
     pub fn process_number_keys(&mut self, key: KeyName)->Option<f64> {
+        //if Keyboard
+        if Keyboard::is_number_element(key){    
         match key{
             KeyName::Enter => {
                 if self.editing {
@@ -129,7 +131,7 @@ impl NumberEdit{
             KeyName::Number9 => if self.line.len() < EDIT_LENGTH {self.line.push('9').unwrap()},
 
             _ => todo!()
-        };
+        }};
         for c in self.line.chars() {
             info!("process_number_keys: line char: {}", c);
         }

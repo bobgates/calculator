@@ -18,7 +18,7 @@ use embedded_graphics::text::Text;
 use heapless::{format, String};
 // use heapless::string::StringInner;
 
-use crate::number_edit::NumberEdit;
+use crate::line_edit::LineEdit;
 
 use st7565::displays::DOGL128_6;
 use st7565::ST7565;
@@ -75,7 +75,7 @@ pub struct DisplayStruct <'a>{
     stack: stack::Stack,
     number_style: DisplayStyle,
     eline : Option<String<20>>,
-    pub entry: NumberEdit,
+    pub entry: LineEdit,
 }
 
 impl <'a> DisplayStruct <'a>{
@@ -100,7 +100,7 @@ impl <'a> DisplayStruct <'a>{
             e_font,
             number_style,
             eline: None,
-            entry: NumberEdit::new(),
+            entry: LineEdit::new(),
         }
     }
 
@@ -248,13 +248,10 @@ impl <'a> DisplayStruct <'a>{
                     // info!("s.e.l.c: {}|", c);
                     if c == '.' {
                         outstr.push('.').unwrap();
-                        // info!("c1 = {}",'.'); 
                     } else if c == '-' {
                         outstr.push('-').unwrap();      // Needs check for E
-                        // info!("c2 = {}",'-'); 
                     } else if c.is_ascii_digit() {
                         outstr.push(c).unwrap();
-                        // info!("c3 = {}",c);        
                     } else if c == 'E' {
                         if outstr.len() == 0 {
                             outstr.push('1').unwrap();
