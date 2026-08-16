@@ -2,6 +2,7 @@
 #![no_main]
 
 use core::cell::RefCell;
+use core::fmt::Write;
 
 // use core::mem::MaybeUninit;
 
@@ -36,7 +37,7 @@ use embassy_sync::blocking_mutex::raw::NoopRawMutex;
 // use embassy_time::Delay;
 // use embassy_time::{Duration, Timer};
 
-//, text};
+// text};
 
 // use embedded_hal::spi::SpiDevice;
 // use embedded_hal::digital::{InputPin, OutputPin};
@@ -48,6 +49,7 @@ use embedded_graphics::mono_font::ascii::{FONT_7X13, FONT_10X20};//, FONT_9X18, 
 use embedded_graphics::mono_font::MonoTextStyle;
 use embedded_graphics::pixelcolor::BinaryColor;
 
+use heapless::String;
 // use rp235x_hal as hal;
 
 use st7565::{GraphicsPageBuffer};
@@ -56,9 +58,11 @@ use st7565::ST7565;
 use st7565::modes::GraphicsMode;
 
 mod keyboard;
-mod stack;
+
 use keyboard::Keyboard;
 // use keyboard::EDIT_ENTRY;
+
+mod stack;
 
 mod line_edit;
 use line_edit::{LineEdit};
@@ -102,6 +106,7 @@ impl FlashLedStruct {
 #[embassy_executor::main]
 async fn main (_spawner: Spawner) {
     let p = embassy_rp::init(Default::default());
+    let mut buffer = String::<32>::new();
 
     info!("Started");
 
@@ -131,7 +136,7 @@ async fn main (_spawner: Spawner) {
     let reset_pin = Output::new(reset, Level::Low);
     // let stacknames_font = MonoTextStyle::new(&FONT_7X13, BinaryColor::On);
 
-    let mut stack = stack::Stack::new();
+    // let mut stack = stack::Stack::new();
     let display: ST7565<SPIInterface<embassy_embedded_hal::shared_bus::blocking::spi::SpiDeviceWithConfig<'_, NoopRawMutex, embassy_rp::spi::Spi<'_, SPI0, embassy_rp::spi::Blocking>, Output<'_>>, Output<'_>>, DOGL128_6, GraphicsMode<'_, 128, 8>, 128, 64, 8> = st7565::ST7565::new(display_interface, DOGL128_6)
         .into_graphics_mode(&mut page_buffer);   
         
@@ -143,6 +148,7 @@ async fn main (_spawner: Spawner) {
         MonoTextStyle::new(&FONT_7X13, BinaryColor::On),        // stack names
         MonoTextStyle::new(&FONT_7X13, BinaryColor::On),        // E
         DisplayStyle::E(4),
+        stack::Stack::new(),
     );
     
     display.set_on(true);
@@ -172,29 +178,63 @@ async fn main (_spawner: Spawner) {
 
     let mut keyboard = Keyboard::new(rows, cols);
     // let mut editing = false;
-    let mut line_edit = LineEdit::new();
+    let mut number_edit = LineEdit::new();
     
+    // let mut stack = stack::Stack::new();                                        // creation of the stack object
+
+    let mut buffer = String::<32>::new();
+
     loop{
         //100E6 is about once per second
         delay(10_000_000); 
         let key = keyboard.scan();
-        let k =  key.await;
+        let k: Option<keyboard::KeyName> =  key.await;
         if k.is_none(){
             continue;
         } else {
             let k = k.unwrap();
             // info!("{} key pressed", k);         
-            let _ = line_edit.process_key(k);
+            let result = number_edit.process_key(k);      
+            info!("Result from number_edit::process_key: {:?}", result);
+
+            if let Some(number) = result {
+                info!("Some result: {}", &result.unwrap());
+                display.push_stack(number);
+                display.update_stack_display(None);
+            } else {
+                info!("No result");
+            }
         
             // info!("Back in main loop");
 
-            // line_edit
-            let line = line_edit.get_line();
-            display.update_stack_display(Some(line)); 
+            // number_edit
+            let mut number_str: String<20> = String::new();
+            
+
+            info!("Number Buffer");
+            for c in number_edit.get_number().chars() {
+                info!("-- {}", c);
+                number_str.push(c).unwrap();
+            }
+            info!("---------------");
+
+
+            display.update_stack_display(Some(number_str));
             // stack.swapxy();
-            stack.set_changed();
+            // stack.set_changed();                                            //
             display.entry.editing = !display.entry.editing;
+            info!("Editing: {}\n\n", display.entry.editing);
                 //100E6 is about once per second
         }
     }
+
 }
+
+// When hitting enter, the stack updates fine, but the status doesn't change to editing = false, 
+//so the next time enter is hit, it goes into editing mode again.  Need to fix this. STOP EDITING MODE
+
+// After entering a number and pushing it onto the stack, the bottom level
+// of the stack should be in non-editing mode and showing the whole shebang.
+
+// Add _ to maths editing line
+

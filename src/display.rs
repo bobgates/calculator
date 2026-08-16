@@ -49,13 +49,13 @@ const Z_LABEL_BOTTOM: i32 = X_LABEL_BOTTOM - 2*LINE_SPACING;
 const T_LABEL_BOTTOM: i32 = X_LABEL_BOTTOM - 3*LINE_SPACING;
 
 // The HP42S has a 131x16 pixel display - two lines by 22 characters. They look something like 1.6x1, height to width
-// The characters are 5 pixels wide and 7 high.
+// The characters are 5 pixels wide and 7 high. with 1 pixel x spacing.
 //
 //The EA DOGL display I have is 128x64, which is slightly narrower and more than twice as high, but
 // I probably won't use that height.
 
 // It is possible to get 2.7" displays in 240x320...
-
+#[derive(Copy, Clone, Debug)]
 pub enum DisplayStyle{
     E(i32),
     _S(i32),
@@ -86,6 +86,7 @@ impl <'a> DisplayStruct <'a>{
                 e_font: MonoTextStyle<'a, BinaryColor>,
                 // f_font: MonoTextStyle<'a, BinaryColor>,
                 number_style: DisplayStyle,
+                stack: stack::Stack,
             ) -> Self {
         
         display.reset(&mut reset_pin, &mut Delay).unwrap();
@@ -94,7 +95,7 @@ impl <'a> DisplayStruct <'a>{
             display, 
             reset_pin,
             font,
-            stack: stack::Stack::new(),
+            stack,
             stack_names_font,
             e_font,
             number_style,
@@ -102,6 +103,13 @@ impl <'a> DisplayStruct <'a>{
             entry: LineEdit::new(),
         }
     }
+
+    pub fn push_stack(&mut self, value: f64) {
+        self.stack.push(value);
+    }
+
+   // Converts an f64 into a string with the correct number of significant figures, 
+   // and returns the position of the 'E' if it is present
 
     pub fn num_to_string(&mut self, number: f64 )->(String<20>, Option<i32>){
         if number == 0.0 {
@@ -179,7 +187,7 @@ impl <'a> DisplayStruct <'a>{
                     // info!("Contains E");
                     for (l, c) in a.chars().enumerate(){
                         if c == 'E' {
-                            b.push(' ').unwrap();
+                            b.push('e').unwrap();
                             e_pos = Some(l.try_into().unwrap());
                         } else {
                             b.push(c).unwrap();
@@ -200,34 +208,10 @@ impl <'a> DisplayStruct <'a>{
             }
         }
     }
-
-    // Takes a string representing a number, returns
-    // the position of the E if there is one and the input string
-    // with the E replaced by a space
-
-// change this so it changes the a in place
-
-
-    // pub fn string_to_string(&self, a: &String<20>)->(String<20>, Option<i32>){
-    //     let p = a.find("E");
-    //     if p == None {
-    //         return (a.clone(), None);
-    //     } else {
-    //         let mut b: String<20>=String::new();
-    //         let mut e_pos: Option<i32> = None;
-
-
-    //         for (l, c) in a.chars().enumerate(){
-    //             if c == 'E' {
-    //                 b.push(' ').unwrap();
-    //                 e_pos = Some(l.try_into().unwrap());
-    //             } else {
-    //                 b.push(c).unwrap();
-    //             }
-    //         }  
-    //         return(b, e_pos)
-    //     }
-    // }           
+    
+    pub fn get_display_style(&self) -> DisplayStyle{
+        self.number_style
+    }
 
     pub fn set_on(&mut self, on: bool) {
         info!("switch display on");
@@ -245,38 +229,64 @@ impl <'a> DisplayStruct <'a>{
     pub fn update_stack_display(&mut self, entry_line: Option<String<20>>) {
         self.display.clear(BinaryColor::Off);
 
-        let (x, y, z, t) = self.stack.fetch_values();
-        
-        info!("x: {}, y: {}, z: {}, t: {}", x, y, z, t);
-        info!("self.entry_line.chars");
+        let (x, y, z, t) = self.stack.fetch_values();                   // This seems to work
+
+        // info!("In update stack display\nx: {}, y: {}, z: {}, t: {}", x, y, z, t);
 
         let mut outstr: String<20>=String::new();
         let mut e_pos: Option<i32> = None;
         let mut line : Option<String<20>> = None;
 
-
+        
         let  (outstr, e_pos) = 
-        if entry_line.is_none(){
-            self.num_to_string(x)
-        } else {
-            for (l, c) in entry_line.unwrap().chars().enumerate(){
-                // for c in line.chars(){ 
-                info!("s.e.l.c: {}|", c);
-                if c == 'E' {
-                    outstr.push(' ').unwrap();
-                    e_pos = Some(l.try_into().unwrap());
+            if entry_line.is_none(){
+                // info!("No entry line, so display x: {}", x);
+                self.num_to_string(x)
+            } else {
+                for (l, c) in entry_line.unwrap().chars().enumerate(){
+                    // for c in line.chars(){ 
+                    // info!("s.e.l.c: {}|", c);
+                    if c == '.' {
+                        outstr.push('.').unwrap();
+                    } else if c == '-' {
+                        outstr.push('-').unwrap();      // Needs check for E
+                    } else if c.is_ascii_digit() {
+                        outstr.push(c).unwrap();
+                    } else if c == 'E' {
+                        if outstr.len() == 0 {
+                            outstr.push('1').unwrap();
+                            e_pos = Some(1);
+                            outstr.push('E').unwrap(); 
+                        } else {
+                            e_pos = Some(l.try_into().unwrap());
+                            outstr.push('E').unwrap(); 
+                        }
+                    // } else if c=='{}
 
-                } else {
-                    // e_pos = None;
-                    info!("c = {}",c);        
-                    outstr.push(c).unwrap();  
-                }  
-            }
-            (outstr, e_pos)
-        }; 
+                    // plusminus
 
-        for i in outstr.chars(){ info!("outstr.chars: {}.", i);}
-        info!("e_pos: {:?}", e_pos);
+                    // backspace if only one character, replace with 0.000e0
+
+                    // } else {
+                    //     info!("Unknown character in entry line: {}", c);
+
+
+                    // chech
+
+                    } else {
+                        info!("--- Not processed: key is {}", c);
+                        e_pos = None;
+                        outstr.push(c).unwrap();  
+                    }  
+                }
+                for a in outstr.chars() {
+                    info!("entry_line = {}", a);
+                }
+                info!("epos = {}",e_pos);
+                (outstr, e_pos)
+            }; 
+
+
         let x_buffer_str = outstr.clone();
         let _= Text::new("x", Point::new(NAME_LEFT, X_LABEL_BOTTOM), self.stack_names_font).draw(&mut self.display);
         let _ = Text::new(":", Point::new(COLON_LEFT, X_LABEL_BOTTOM), self.stack_names_font).draw(&mut self.display);
@@ -284,7 +294,6 @@ impl <'a> DisplayStruct <'a>{
         if e_pos.is_some() {
             let _ = Text::new("E", Point::new(NUM_LEFT + NUM_WIDTH * e_pos.unwrap() + 2, X_NUM_BOTTOM-2), self.e_font).draw(&mut self.display);
         }
-        // let e_pos = 
 
         let (y_buffer_str, e_pos) = self.num_to_string(y);
         let _= Text::new("y", Point::new(NAME_LEFT, Y_LABEL_BOTTOM), self.stack_names_font).draw(&mut self.display);
@@ -307,13 +316,12 @@ impl <'a> DisplayStruct <'a>{
         let _ = Text::new(":", Point::new(COLON_LEFT, T_LABEL_BOTTOM), self.stack_names_font).draw(&mut self.display);
         let _ = Text::new(&t_buffer_str, Point::new(NUM_LEFT, T_NUM_BOTTOM), self.font).draw(&mut self.display);
         if e_pos.is_some() {
-        //     let _ = Text::new("E", Point::new(NUM_LEFT + 10 * e_pos.unwrap() + 2, T_NUM_BOTTOM-2), self.e_font).draw(&mut self.display);
-        // }
+            let _ = Text::new("E", Point::new(NUM_LEFT + 10 * e_pos.unwrap() + 2, T_NUM_BOTTOM-2), self.e_font).draw(&mut self.display);
+        }
 
         // self.display.reset(&mut self.reset_pin, &mut Delay).unwrap();
         self.display.flush().unwrap();       // Flushes internal buffer to the display
 
-        }
-
     }
+
 }

@@ -4,7 +4,7 @@
 
 // use core::{f64, num};
 use core::fmt::Write;
-use core::{fmt, result};
+use core::fmt;
 use defmt::{info};//, 
 use defmt::Format;
 
@@ -20,30 +20,20 @@ use crate::keyboard::KeyName;
 const EDIT_LENGTH: usize = 20;      // Two spare characters if there are a couple of off by 1 errors!
 
 #[derive(Clone, Debug)]
-pub struct LineEdit{
+pub struct NumberEdit{
     pub editing: bool,
     pub line: String<EDIT_LENGTH>,
     // stack: crate::stack::Stack,
 }
 
-impl LineEdit{
-    pub fn new( /*stack: crate::stack::Stack*/)->LineEdit{
+impl NumberEdit{
+    pub fn new( /*stack: crate::stack::Stack*/)->NumberEdit{
         let line = String::<EDIT_LENGTH>::new();
         let editing = false;
-        LineEdit { editing, line}//, stack }
-    }
-
-    pub fn start_editing(&mut self){
-        self.editing = true;
-    }
-
-    pub fn stop_editing(&mut self){
-        self.editing = false;
+        NumberEdit { editing, line}//, stack }
     }
 
     pub fn process_number_keys(&mut self, key: KeyName)->Option<f64> {
-        //if Keyboard
-        if Keyboard::is_number_element(key){    
         match key{
             KeyName::Enter => {
                 if self.editing {
@@ -54,21 +44,17 @@ impl LineEdit{
                     let result = self.line.parse::<f64>();
                     if result.is_ok() {
                         let a = result.unwrap();
-                        info!("    result is ok, parsed value: {}", a);
-                        // info!("process_number_keys: set editing to FALSE");
-                        self.stop_editing();
+                        info!("result is ok, parsed value: {}", a);
+                        info!("process_number_keys: set editing to FALSE");
+                        self.editing = false;
                         return Some(a);
                     } else {
-                        info!("    result is not ok");
-                        for c in self.line.chars() {
-                            info!("****** process_number_keys: line char: {}", c);
-                        }
-                        // info!("process_number_keys: parse failed, still editing");
+                        info!("process_number_keys: parse failed, still editing");
                     } 
                     return None;
                 } else {
                     info!("process_number_keys: set editing to TRUE");
-                    self.start_editing();                                            // !todo this is wrong...
+                    self.editing = true;                                            // !todo this is wrong...
                 }
             },                          //----------------------------**************************************** WORK HERE
             KeyName::Back => 
@@ -130,16 +116,12 @@ impl LineEdit{
             KeyName::Number8 => if self.line.len() < EDIT_LENGTH {self.line.push('8').unwrap()},
             KeyName::Number9 => if self.line.len() < EDIT_LENGTH {self.line.push('9').unwrap()},
 
-            _ => todo!()
-        }};
-        for c in self.line.chars() {
-            info!("process_number_keys: line char: {}", c);
-        }
-        
-        let result = self.line.parse::<f64>();
 
-        // info!("before nums:");
-        result.ok()      
+
+            _ => todo!()
+        };
+        info!("before nums:");
+        None
 
     }
 
@@ -148,13 +130,13 @@ impl LineEdit{
     // calcs
     pub fn process_key(&mut self, key: KeyName) -> Option<f64> {
         if Keyboard::is_number_element(key){           // Handle the display of 
+            // info!("Key {} is valid in the number editor", key);
             self.process_number_keys(key)
         } else { 
-            info!("Key {} is not valid in the number editor", key);
             None
         }
     }
-    pub fn get_number(&self) -> String<20> {
+    pub fn get_line(&self) -> String<20> {
         self.line.clone()
     }
 }

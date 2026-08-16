@@ -15,8 +15,10 @@ use enumset::{enum_set, EnumSet, EnumSetType};
 //     Up,//     Down,//     Orange,//     OnOff,//     DecimalPoint,//     RunStop,
 //     Plus,//     Minus,//     Divide,//     Multiply,//     Number(u8),//     Error,// }
 #[derive(EnumSetType, Debug, Format)]
+
+// Setting the first to a number starts an auto-numbering system
 pub enum KeyName{
-    Number0=0, // Setting the first to a number starts an auto-numbering system
+    Number0=0, 
     Number1,
     Number2,
     Number3,
@@ -62,11 +64,16 @@ pub enum KeyName{
     Error,
 }
 
-pub const EDIT_ENTRY: EnumSet<KeyName> =enum_set!(KeyName::Number0 | KeyName::Number1 | KeyName::Number2 |    // These all work in number entry mode
-    KeyName::Number3 |  KeyName::Number4 |  KeyName::Number5 |  
+pub const ENTER_AND_EDIT_ENTRY_MODE: EnumSet<KeyName> = enum_set!(
+    KeyName::Number0 | KeyName::Number1 | KeyName::Number2 |    // These all work in number entry mode
+    KeyName::Number3 |  KeyName::Number4 |  KeyName::Number5 |  // and take you into number entry mode
     KeyName::Number6 |  KeyName::Number7 |  KeyName::Number8 |  
-    KeyName::Number9 | KeyName::DecimalPoint | KeyName::PlusMinus | KeyName::E | KeyName::Enter);
+    KeyName::Number9 | KeyName::DecimalPoint | 
+    KeyName::E | KeyName::Enter | KeyName::Back);
 
+pub const WORK_IN_ENTRY_MODE: EnumSet<KeyName> = enum_set!( KeyName::PlusMinus | KeyName::Enter | KeyName::Back );             // Works in number mode
+
+// pub const ALL_KEYS;
 
 // #[derive(Debug, Clone, Copy)]
 static ROW_COL_MAP: [[KeyName; 6]; 8] = [
@@ -100,13 +107,16 @@ impl Keyboard {
         }
     }
 
+    pub fn enters_entry_mode(key: KeyName)->bool{
+        ENTER_AND_EDIT_ENTRY_MODE.contains(key)
+    }
+
     pub fn is_number_element(key: KeyName)->bool{
-        // info!(". in is_number_element, key is {}", key);
-        let c = EDIT_ENTRY.contains(key);
-        // if c {info!("---checked {} is a number_element", key)} else 
-        //     {info!("---checked {} is a NOT number_element", key)}
-        // }
-        c
+       ENTER_AND_EDIT_ENTRY_MODE.contains(key)|WORK_IN_ENTRY_MODE.contains(key)
+    }
+
+    pub fn works_in_entry_mode(key: KeyName)->bool{
+        ENTER_AND_EDIT_ENTRY_MODE.contains(key)|WORK_IN_ENTRY_MODE.contains(key)        
     }
 
 
