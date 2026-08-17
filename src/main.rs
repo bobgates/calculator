@@ -178,7 +178,7 @@ async fn main (_spawner: Spawner) {
 
     let mut keyboard = Keyboard::new(rows, cols);
     // let mut editing = false;
-    let mut number_edit = LineEdit::new();
+    let mut line_edit = LineEdit::new();
     
     // let mut stack = stack::Stack::new();                                        // creation of the stack object
 
@@ -194,7 +194,7 @@ async fn main (_spawner: Spawner) {
         } else {
             let k = k.unwrap();
             // info!("{} key pressed", k);         
-            let result = number_edit.process_key(k);      
+            let result = line_edit.process_key(k);      
             info!("Result from number_edit::process_key: {:?}", result);
 
             if let Some(number) = result {
@@ -212,7 +212,7 @@ async fn main (_spawner: Spawner) {
             
 
             info!("Number Buffer");
-            for c in number_edit.get_number().chars() {
+            for c in line_edit.get_number().chars() {
                 info!("-- {}", c);
                 number_str.push(c).unwrap();
             }

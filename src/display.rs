@@ -2,6 +2,7 @@
 // use cortex_m::asm::delay;
 use defmt::info;
 use core::f64;
+use core::fmt::Write;
 // use core::num;
 use display_interface_spi::SPIInterface;
 
@@ -16,6 +17,7 @@ use embedded_graphics::{prelude::*};
 use embedded_graphics::text::Text;
 
 use heapless::{format, String};
+use heapless::pool::boxed::Box;
 // use heapless::string::StringInner;
 
 use crate::line_edit::LineEdit;
@@ -34,19 +36,6 @@ use crate::stack;
 use num_traits::float::FloatCore;
 
 
-const NAME_LEFT: i32 = 1;
-const COLON_LEFT: i32 = 6;
-const NUM_LEFT: i32 = 15; 
-const NUM_WIDTH: i32 = 10;
-const LINE_SPACING: i32 = 15;
-const X_NUM_BOTTOM: i32 = 62;
-const Y_NUM_BOTTOM: i32 = X_NUM_BOTTOM - LINE_SPACING;
-const Z_NUM_BOTTOM: i32 = X_NUM_BOTTOM - 2*LINE_SPACING;
-const T_NUM_BOTTOM: i32 = X_NUM_BOTTOM - 3*LINE_SPACING;
-const X_LABEL_BOTTOM: i32 = 59;
-const Y_LABEL_BOTTOM: i32 = X_LABEL_BOTTOM - LINE_SPACING;
-const Z_LABEL_BOTTOM: i32 = X_LABEL_BOTTOM - 2*LINE_SPACING;
-const T_LABEL_BOTTOM: i32 = X_LABEL_BOTTOM - 3*LINE_SPACING;
 
 // The HP42S has a 131x16 pixel display - two lines by 22 characters. They look something like 1.6x1, height to width
 // The characters are 5 pixels wide and 7 high. with 1 pixel x spacing.
@@ -62,6 +51,14 @@ pub enum DisplayStyle{
     _FIXED,
     _ALL,
 }
+
+pub enum DisplayLine{
+    X,
+    Y, 
+    Z,
+    T,
+}
+
 
 // #[derive(EnumSetType, Debug, Format)]
 // #[derive(Clone)]
@@ -261,18 +258,6 @@ impl <'a> DisplayStruct <'a>{
                             e_pos = Some(l.try_into().unwrap());
                             outstr.push('E').unwrap(); 
                         }
-                    // } else if c=='{}
-
-                    // plusminus
-
-                    // backspace if only one character, replace with 0.000e0
-
-                    // } else {
-                    //     info!("Unknown character in entry line: {}", c);
-
-
-                    // chech
-
                     } else {
                         info!("--- Not processed: key is {}", c);
                         e_pos = None;
@@ -287,41 +272,112 @@ impl <'a> DisplayStruct <'a>{
             }; 
 
 
-        let x_buffer_str = outstr.clone();
-        let _= Text::new("x", Point::new(NAME_LEFT, X_LABEL_BOTTOM), self.stack_names_font).draw(&mut self.display);
-        let _ = Text::new(":", Point::new(COLON_LEFT, X_LABEL_BOTTOM), self.stack_names_font).draw(&mut self.display);
-        let _ = Text::new(&x_buffer_str, Point::new(NUM_LEFT, X_NUM_BOTTOM), self.font).draw(&mut self.display);
-        if e_pos.is_some() {
-            let _ = Text::new("E", Point::new(NUM_LEFT + NUM_WIDTH * e_pos.unwrap() + 2, X_NUM_BOTTOM-2), self.e_font).draw(&mut self.display);
-        }
+        let x_buffer_str = Some(outstr.clone());
+        let (y_buffer_str, ye_pos) = self.num_to_string(y);
+        let (z_buffer_str, ze_pos) = self.num_to_string(z);
+        let (t_buffer_str, te_pos) = self.num_to_string(t);
 
-        let (y_buffer_str, e_pos) = self.num_to_string(y);
-        let _= Text::new("y", Point::new(NAME_LEFT, Y_LABEL_BOTTOM), self.stack_names_font).draw(&mut self.display);
-        let _ = Text::new(":", Point::new(COLON_LEFT, Y_LABEL_BOTTOM), self.stack_names_font).draw(&mut self.display);
-        let _ = Text::new(&y_buffer_str, Point::new(NUM_LEFT, Y_NUM_BOTTOM), self.font).draw(&mut self.display);
-        if e_pos.is_some() {
-            let _ = Text::new("E", Point::new(NUM_LEFT + 10 * e_pos.unwrap() + 1, Y_NUM_BOTTOM-2), self.e_font).draw(&mut self.display);
-        }
+        self.draw_one_line(x_buffer_str, e_pos, DisplayLine::X);
+        self.draw_one_line(Some(y_buffer_str), ye_pos, DisplayLine::Y);
+        self.draw_one_line(Some(z_buffer_str), ze_pos, DisplayLine::Z);
+        self.draw_one_line(Some(t_buffer_str), te_pos, DisplayLine::T);
 
-        let (z_buffer_str , e_pos)= self.num_to_string(z,);
-        let _= Text::new("z", Point::new(NAME_LEFT, Z_LABEL_BOTTOM), self.stack_names_font).draw(&mut self.display);
-        let _ = Text::new(":", Point::new(COLON_LEFT, Z_LABEL_BOTTOM), self.stack_names_font).draw(&mut self.display);
-        let _ = Text::new(&z_buffer_str, Point::new(NUM_LEFT, Z_NUM_BOTTOM), self.font).draw(&mut self.display);
-        if e_pos.is_some() {
-            let _ = Text::new("E", Point::new(NUM_LEFT + 10 * e_pos.unwrap() + 2, Z_NUM_BOTTOM-2), self.e_font).draw(&mut self.display);
-        }
 
-        let (t_buffer_str, e_pos) = self.num_to_string(t);
-        let _= Text::new("t", Point::new(NAME_LEFT, T_LABEL_BOTTOM), self.stack_names_font).draw(&mut self.display);
-        let _ = Text::new(":", Point::new(COLON_LEFT, T_LABEL_BOTTOM), self.stack_names_font).draw(&mut self.display);
-        let _ = Text::new(&t_buffer_str, Point::new(NUM_LEFT, T_NUM_BOTTOM), self.font).draw(&mut self.display);
-        if e_pos.is_some() {
-            let _ = Text::new("E", Point::new(NUM_LEFT + 10 * e_pos.unwrap() + 2, T_NUM_BOTTOM-2), self.e_font).draw(&mut self.display);
-        }
+        // let _= Text::new("x", Point::new(NAME_LEFT, X_LABEL_BOTTOM), self.stack_names_font).draw(&mut self.display);
+        // let _ = Text::new(":", Point::new(COLON_LEFT, X_LABEL_BOTTOM), self.stack_names_font).draw(&mut self.display);
+        // let _ = Text::new(&x_buffer_str, Point::new(NUM_LEFT, X_NUM_BOTTOM), self.font).draw(&mut self.display);
+        // if e_pos.is_some() {
+        //     let _ = Text::new("E", Point::new(NUM_LEFT + NUM_WIDTH * e_pos.unwrap() + 2, X_NUM_BOTTOM-2), self.e_font).draw(&mut self.display);
+        // }
+
+        // let (y_buffer_str, e_pos) = self.num_to_string(y);
+        // let _= Text::new("y", Point::new(NAME_LEFT, Y_LABEL_BOTTOM), self.stack_names_font).draw(&mut self.display);
+        // let _ = Text::new(":", Point::new(COLON_LEFT, Y_LABEL_BOTTOM), self.stack_names_font).draw(&mut self.display);
+        // let _ = Text::new(&y_buffer_str, Point::new(NUM_LEFT, Y_NUM_BOTTOM), self.font).draw(&mut self.display);
+        // if e_pos.is_some() {
+        //     let _ = Text::new("E", Point::new(NUM_LEFT + 10 * e_pos.unwrap() + 1, Y_NUM_BOTTOM-2), self.e_font).draw(&mut self.display);
+        // }
+
+        // let (z_buffer_str , e_pos)= self.num_to_string(z,);
+        // let _= Text::new("z", Point::new(NAME_LEFT, Z_LABEL_BOTTOM), self.stack_names_font).draw(&mut self.display);
+        // let _ = Text::new(":", Point::new(COLON_LEFT, Z_LABEL_BOTTOM), self.stack_names_font).draw(&mut self.display);
+        // let _ = Text::new(&z_buffer_str, Point::new(NUM_LEFT, Z_NUM_BOTTOM), self.font).draw(&mut self.display);
+        // if e_pos.is_some() {
+        //     let _ = Text::new("E", Point::new(NUM_LEFT + 10 * e_pos.unwrap() + 2, Z_NUM_BOTTOM-2), self.e_font).draw(&mut self.display);
+        // }
+
+        // let (t_buffer_str, e_pos) = self.num_to_string(t);
+        // let _= Text::new("t", Point::new(NAME_LEFT, T_LABEL_BOTTOM), self.stack_names_font).draw(&mut self.display);
+        // let _ = Text::new(":", Point::new(COLON_LEFT, T_LABEL_BOTTOM), self.stack_names_font).draw(&mut self.display);
+        // let _ = Text::new(&t_buffer_str, Point::new(NUM_LEFT, T_NUM_BOTTOM), self.font).draw(&mut self.display);
+        // if e_pos.is_some() {
+        //     let _ = Text::new("E", Point::new(NUM_LEFT + 10 * e_pos.unwrap() + 2, T_NUM_BOTTOM-2), self.e_font).draw(&mut self.display);
+        // }
 
         // self.display.reset(&mut self.reset_pin, &mut Delay).unwrap();
         self.display.flush().unwrap();       // Flushes internal buffer to the display
 
     }
 
+
+const NAME_LEFT: i32 = 1;
+const COLON_LEFT: i32 = 6;
+const NUM_LEFT: i32 = 15; 
+const NUM_WIDTH: i32 = 10;
+const LINE_SPACING: i32 = 15;
+const X_BOTTOM: i32 = 62;
+
+
+// const NAME_LEFT: i32 = 1;
+// const COLON_LEFT: i32 = 6;
+// const NUM_LEFT: i32 = 15; 
+// const NUM_WIDTH: i32 = 10;
+// const LINE_SPACING: i32 = 15;
+const NUMBER_BOTTOM: i32 = 62;
+// const Y_BOTTOM: i32 = X_NUM_BOTTOM - LINE_SPACING;
+// const Z_BOTTOM: i32 = X_NUM_BOTTOM - 2*LINE_SPACING;
+// const T_BOTTOM: i32 = X_NUM_BOTTOM - 3*LINE_SPACING;
+const LABEL_BOTTOM: i32 = 59;
+// const Y_LABEL_BOTTOM: i32 = X_LABEL_BOTTOM - LINE_SPACING;
+// const Z_LABEL_BOTTOM: i32 = X_LABEL_BOTTOM - 2*LINE_SPACING;
+// const T_LABEL_BOTTOM: i32 = X_LABEL_BOTTOM - 3*LINE_SPACING;
+
+
+    pub fn draw_one_line(&mut self, entry_line: Option<String<20>>, e_pos: Option<i32>, target: DisplayLine){ 
+
+        const NUMBER_BOTTOM: i32 = 62;
+        const LABEL_BOTTOM: i32 = 59;
+        const LINE_SPACING: i32 = 15;
+        const NAME_LEFT: i32 = 1;
+        const COLON_LEFT: i32 = 6;
+        const NUM_LEFT: i32 = 15; 
+        const NUM_WIDTH: i32 = 10;
+
+        let (letter, label_bottom, number_bottom)  = match target {
+            DisplayLine::X => {("x", LABEL_BOTTOM, NUMBER_BOTTOM)},
+            DisplayLine::Y => {("y", LABEL_BOTTOM - LINE_SPACING, NUMBER_BOTTOM - 3*LINE_SPACING)},
+            DisplayLine::Z => {("z", LABEL_BOTTOM - 2*LINE_SPACING, NUMBER_BOTTOM - 3*LINE_SPACING)},
+            DisplayLine::T => {("t", LABEL_BOTTOM - 3*LINE_SPACING, NUMBER_BOTTOM - 3*LINE_SPACING)},
+        };
+
+        let mut none_line = String::<20>::new();
+        let _ = write!(none_line, "");
+        
+
+// HERE: replace the e in entry_line with a space
+
+        let entry_line = match entry_line {
+                            Some(line) => line,
+                            None=> none_line,
+        };
+
+        let x_buffer_str = entry_line.clone();
+        let _= Text::new(letter, Point::new(NAME_LEFT, label_bottom), self.stack_names_font).draw(&mut self.display);
+        let _ = Text::new(":", Point::new(COLON_LEFT, label_bottom), self.stack_names_font).draw(&mut self.display);
+        let _ = Text::new(&entry_line, Point::new(NUM_LEFT, number_bottom), self.font).draw(&mut self.display);
+        if e_pos.is_some() {
+            let _ = Text::new("E", Point::new(NUM_LEFT + NUM_WIDTH * e_pos.unwrap() + 2, number_bottom-2), self.e_font).draw(&mut self.display);
+        }
+        
+        }
 }
