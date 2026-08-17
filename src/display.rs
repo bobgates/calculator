@@ -184,7 +184,7 @@ impl <'a> DisplayStruct <'a>{
                     // info!("Contains E");
                     for (l, c) in a.chars().enumerate(){
                         if c == 'E' {
-                            b.push('e').unwrap();
+                            b.push(' ').unwrap();
                             e_pos = Some(l.try_into().unwrap());
                         } else {
                             b.push(c).unwrap();
@@ -228,7 +228,7 @@ impl <'a> DisplayStruct <'a>{
 
         let (x, y, z, t) = self.stack.fetch_values();                   // This seems to work
 
-        // info!("In update stack display\nx: {}, y: {}, z: {}, t: {}", x, y, z, t);
+        info!("In update stack display\nx: {}, y: {}, z: {}, t: {}", x, y, z, t);
 
         let mut outstr: String<20>=String::new();
         let mut e_pos: Option<i32> = None;
@@ -355,8 +355,8 @@ const LABEL_BOTTOM: i32 = 59;
 
         let (letter, label_bottom, number_bottom)  = match target {
             DisplayLine::X => {("x", LABEL_BOTTOM, NUMBER_BOTTOM)},
-            DisplayLine::Y => {("y", LABEL_BOTTOM - LINE_SPACING, NUMBER_BOTTOM - 3*LINE_SPACING)},
-            DisplayLine::Z => {("z", LABEL_BOTTOM - 2*LINE_SPACING, NUMBER_BOTTOM - 3*LINE_SPACING)},
+            DisplayLine::Y => {("y", LABEL_BOTTOM - LINE_SPACING, NUMBER_BOTTOM - LINE_SPACING)},
+            DisplayLine::Z => {("z", LABEL_BOTTOM - 2*LINE_SPACING, NUMBER_BOTTOM - 2*LINE_SPACING)},
             DisplayLine::T => {("t", LABEL_BOTTOM - 3*LINE_SPACING, NUMBER_BOTTOM - 3*LINE_SPACING)},
         };
 

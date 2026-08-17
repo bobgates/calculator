@@ -3,9 +3,8 @@
     {
       "name": "Default",
       "files": [
-        "src/main.rs",
-        ".vscode/changelists.json",
-        "src/display.rs"
+        "src/display.rs",
+        ".vscode/changelists.json"
       ]
     }
   ],
