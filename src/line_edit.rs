@@ -11,6 +11,8 @@ use defmt::Format;
 // use heapless::Format;
 use heapless::String;
 
+
+
 use crate::keyboard::Keyboard;
 use crate::keyboard::{ENTER_AND_EDIT_ENTRY_MODE, WORK_IN_ENTRY_MODE};
 use crate::keyboard::KeyName;
@@ -20,9 +22,12 @@ use crate::keyboard::KeyName;
 // const EDIT_LENGTH: usize = 20;      // Maximum length of internal buffer
 const EDIT_LENGTH: usize = 20;      // Two spare characters if there are a couple of off by 1 errors!
 
+use crate::State;
+use crate::State::{Calculating, Editing, Undefined};
+
 #[derive(Clone, Debug)]
 pub struct LineEdit{
-    pub editing: bool,
+    pub state: State,
     pub line: String<EDIT_LENGTH>,
     // stack: crate::stack::Stack,
 }
@@ -50,50 +55,57 @@ pub struct LineEdit{
 impl LineEdit{
     pub fn new( /*stack: crate::stack::Stack*/)->LineEdit{
         let line = String::<EDIT_LENGTH>::new();
-        let editing = false;
-        LineEdit { editing, line}//, stack }
+        let state = Calculating;    
+        LineEdit { state, line}
     }
 
     pub fn start_editing(&mut self){
-        self.editing = true;
+        self.state = Editing;
     }
 
     pub fn stop_editing(&mut self){
-        self.editing = false;
+        self.state = Calculating;
     }
 
     pub fn process_number_keys(&mut self, key: KeyName)->Option<f64> {  
 
         match key{
             KeyName::Enter => {
-                if self.editing {
-                    for c in self.line.chars() {
-                        info!("process_number_keys in Enter: line char: {}", c);
-                    }
-
-                    let result = self.line.parse::<f64>();
-                    if result.is_ok() {
-                        let a = result.unwrap();
-                        info!("    result is ok, parsed value: {}", a);
-                        // info!("process_number_keys: set editing to FALSE");
-                        self.stop_editing();
-                        return Some(a);
-                    } else {
-                        info!("    result is not ok");
+                match self.state {
+                    Editing => {
                         for c in self.line.chars() {
-                            info!("****** process_number_keys: line char: {}", c);
+                            info!("     pnk: in Enter: line char: {}", c);
                         }
-                        // info!("process_number_keys: parse failed, still editing");
-                    // } */
+
+                        let result = self.line.parse::<f64>();
+                        if result.is_ok() {
+                            let a = result.unwrap();
+                            info!("    pnk: result is ok, parsed value: {}", a);
+                            // info!("process_number_keys: set editing to FALSE");
+                            self.stop_editing();
+                            return Some(a);
+                        } else {
+                            info!("    pnk: result is NOT ok");
+                            for c in self.line.chars() {
+                                info!("****** process_number_keys: line char: {}", c);
+                            }
+                            return None;
+                        }
+                    },
+                    Calculating => {
+                        info!("calculating");
+                        info!("process_number_keys: set editing to TRUE");
+                        self.start_editing(); 
+                        return None;
+                    },
+                    Undefined => {
+                        info!("WAAAK WAAAK WAAAK - state is undefined, should never happen");
+                        return None;
                     }
-                    return None;
-                } else {
-                    info!("process_number_keys: set editing to TRUE");
-                    self.start_editing();                                            // !todo this is wrong...
                 }
             },                          //----------------------------**************************************** WORK HERE
             KeyName::Back => 
-                if self.line.len()>1 && self.editing{
+                if self.line.len()>1 && self.state == Editing{
                     info!("popping a character from the line");
                     self.line.pop();
                 } else {                                                        // !todo else..
@@ -162,29 +174,28 @@ impl LineEdit{
     }
 
 
-    // Eats the current key and routes it to numbers or
-    // calcs
-    pub fn process_key(&mut self, key: KeyName) -> Option<f64> {
-
-        if self.editing{
+    // Eats the current key and routes it to numbers or calcs
+    pub fn process_key(&mut self, key: KeyName) { //-> (Option<f64>, State) {
+        let mut new_state: State; 
+        if self.state == Editing{
             if !Self::works_in_entry_mode(key){
-                self.editing = false;
-                info!("self.editing set false XXXXXXX");
+                self.state = Calculating;
+                info!("set self.state to calculating");
             }
         } else {
             if Keyboard::enters_entry_mode(key){
-                self.editing = true;
+                self.state = Editing;
                 info!("self.editing set to true!!!!!!!!");
             }
         };
-        if self.editing{
-            info!("is a number key ooooooooooooooooooooo ");
-            self.process_number_keys(key)
+        if self.state == Calculating{
+            info!("is a number key but we're in calculting, so change state");
+            self.state= Editing; 
         } else {
+            self.state = Calculating;
             //Process command
-            info!("not a number key - to be implemented ");
-            None
-        }
+            info!("not a number key - to be implemented ");        
+        };
     }
 
     pub fn is_number_element(key: KeyName)->bool{

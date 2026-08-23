@@ -4,10 +4,9 @@
       "name": "Default",
       "files": [
         ".vscode/changelists.json",
-        "src/display.rs",
-        "src/line_edit.rs",
+        "docs/plan.md",
         "src/main.rs",
-        "src/keyboard.rs"
+        "src/line_edit.rs"
       ]
     }
   ],

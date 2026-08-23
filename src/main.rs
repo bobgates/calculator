@@ -52,6 +52,9 @@ use embedded_graphics::pixelcolor::BinaryColor;
 use heapless::String;
 // use rp235x_hal as hal;
 
+mod line_edit;
+use line_edit::{LineEdit};
+
 use st7565::{GraphicsPageBuffer};
 use st7565::displays::DOGL128_6;
 use st7565::ST7565;
@@ -64,8 +67,7 @@ use keyboard::Keyboard;
 
 mod stack;
 
-mod line_edit;
-use line_edit::{LineEdit};
+
 
 
 // use defmt::{Format};
@@ -89,6 +91,13 @@ struct FlashLedStruct {
     delay: u32,
 }
 
+#[derive(Clone, Debug, Copy, PartialEq)]
+enum State {
+    Undefined,
+    Editing,
+    Calculating,
+}
+
 impl FlashLedStruct {
     fn new(led: Output<'static>, delay: u32) -> Self {
         Self { led, delay }
@@ -101,6 +110,8 @@ impl FlashLedStruct {
         delay(self.delay);
     }
 }
+
+
 
 
 #[embassy_executor::main]
@@ -193,8 +204,9 @@ async fn main (_spawner: Spawner) {
         } else {
             let k = k.unwrap();
             info!("main: {} key pressed", k);         
-            let result = line_edit.process_key(k);      
-            
+            // let (result, editing) =
+             line_edit.process_key(k);      
+// Okay, now figure out how to carry on with the outputs from process_key()
             if let Some(number) = result {
                 info!("Some result in main: {}", &result.unwrap());
                 display.push_stack(number);
