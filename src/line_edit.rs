@@ -12,6 +12,7 @@ use defmt::Format;
 use heapless::String;
 
 use crate::keyboard::Keyboard;
+use crate::keyboard::{ENTER_AND_EDIT_ENTRY_MODE, WORK_IN_ENTRY_MODE};
 use crate::keyboard::KeyName;
 // use crate::Keyboard::
 // use crate::keyboard::KEYNAME;
@@ -25,6 +26,26 @@ pub struct LineEdit{
     pub line: String<EDIT_LENGTH>,
     // stack: crate::stack::Stack,
 }
+
+/*
+
+    Every key press calls LineEdit process key
+    LineEdit has two states: editing or not editing.
+
+    If it is not editing then any key in 
+        ENTER_AND_EDIT_ENTRY_MODE
+            puts it into edit and it will now also accept:
+        WORK_IN_ENTRY_MODE
+        Then process with those keys to build up a number
+        If any other Key arrives:
+        - process keys up to now into a number, or produce
+          a zero on error.
+        - push the number
+        - turn off ENTER_AND_EDIT_ENTRY_MODE
+
+*/
+
+
 
 impl LineEdit{
     pub fn new( /*stack: crate::stack::Stack*/)->LineEdit{
@@ -41,15 +62,14 @@ impl LineEdit{
         self.editing = false;
     }
 
-    pub fn process_number_keys(&mut self, key: KeyName)->Option<f64> {
-        //if Keyboard
-        if Keyboard::is_number_element(key){    
+    pub fn process_number_keys(&mut self, key: KeyName)->Option<f64> {  
+
         match key{
             KeyName::Enter => {
                 if self.editing {
-                    // for c in self.line.chars() {
-                    //     info!("process_number_keys: line char: {}", c);
-                    // }
+                    for c in self.line.chars() {
+                        info!("process_number_keys in Enter: line char: {}", c);
+                    }
 
                     let result = self.line.parse::<f64>();
                     if result.is_ok() {
@@ -64,7 +84,8 @@ impl LineEdit{
                             info!("****** process_number_keys: line char: {}", c);
                         }
                         // info!("process_number_keys: parse failed, still editing");
-                    } 
+                    // } */
+                    }
                     return None;
                 } else {
                     info!("process_number_keys: set editing to TRUE");
@@ -130,30 +151,50 @@ impl LineEdit{
             KeyName::Number8 => if self.line.len() < EDIT_LENGTH {self.line.push('8').unwrap()},
             KeyName::Number9 => if self.line.len() < EDIT_LENGTH {self.line.push('9').unwrap()},
 
-            _ => todo!()
-        }};
+            _ => (), //todo!()
+        };//} else {};
         for c in self.line.chars() {
             info!("process_number_keys: line char: {}", c);
         }
         
         let result = self.line.parse::<f64>();
-
-        // info!("before nums:");
         result.ok()      
-
     }
 
 
     // Eats the current key and routes it to numbers or
     // calcs
     pub fn process_key(&mut self, key: KeyName) -> Option<f64> {
-        if Keyboard::is_number_element(key){           // Handle the display of 
+
+        if self.editing{
+            if !Self::works_in_entry_mode(key){
+                self.editing = false;
+                info!("self.editing set false XXXXXXX");
+            }
+        } else {
+            if Keyboard::enters_entry_mode(key){
+                self.editing = true;
+                info!("self.editing set to true!!!!!!!!");
+            }
+        };
+        if self.editing{
+            info!("is a number key ooooooooooooooooooooo ");
             self.process_number_keys(key)
-        } else { 
-            info!("Key {} is not valid in the number editor", key);
+        } else {
+            //Process command
+            info!("not a number key - to be implemented ");
             None
         }
     }
+
+    pub fn is_number_element(key: KeyName)->bool{
+       ENTER_AND_EDIT_ENTRY_MODE.contains(key)|WORK_IN_ENTRY_MODE.contains(key)
+    }
+
+    pub fn works_in_entry_mode(key: KeyName)->bool{
+        WORK_IN_ENTRY_MODE.contains(key)        
+    }
+
     pub fn get_number(&self) -> String<20> {
         self.line.clone()
     }

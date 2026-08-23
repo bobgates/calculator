@@ -1,7 +1,7 @@
 
 // use cortex_m::asm::delay;
 use defmt::info;
-use core::f64;
+use core::{f64, todo};
 use core::fmt::Write;
 // use core::num;
 use display_interface_spi::SPIInterface;
@@ -209,9 +209,9 @@ impl <'a> DisplayStruct <'a>{
     pub fn get_display_style(&self) -> DisplayStyle{
         self.number_style
     }
-
+//todo!("check if set_on needs to be called twice");
     pub fn set_on(&mut self, on: bool) {
-        info!("switch display on");
+        // info!("switch display on");
         self.display.set_display_on(on).unwrap();
 
         let _ = self.display.flush();
@@ -228,7 +228,7 @@ impl <'a> DisplayStruct <'a>{
 
         let (x, y, z, t) = self.stack.fetch_values();                   // This seems to work
 
-        info!("In update stack display\nx: {}, y: {}, z: {}, t: {}", x, y, z, t);
+        info!("In display.update_stack_display - x: {}, y: {}, z: {}, t: {}", x, y, z, t);
 
         let mut outstr: String<20>=String::new();
         let mut e_pos: Option<i32> = None;
@@ -237,30 +237,26 @@ impl <'a> DisplayStruct <'a>{
         
         let  (outstr, e_pos) = 
             if entry_line.is_none(){
-                // info!("No entry line, so display x: {}", x);
+                info!("No entry line, so display x: {}", x);
                 self.num_to_string(x)
             } else {
                 for (l, c) in entry_line.unwrap().chars().enumerate(){
-                    // for c in line.chars(){ 
-                    // info!("s.e.l.c: {}|", c);
                     if c == '.' {
                         outstr.push('.').unwrap();
                     } else if c == '-' {
                         outstr.push('-').unwrap();      // Needs check for E
                     } else if c.is_ascii_digit() {
                         outstr.push(c).unwrap();
-                    } else if c == 'E' {
+                    } else if c == 'E' {                // Set epos
                         if outstr.len() == 0 {
                             outstr.push('1').unwrap();
-                            e_pos = Some(1);
-                            outstr.push('E').unwrap(); 
-                        } else {
-                            e_pos = Some(l.try_into().unwrap());
-                            outstr.push('E').unwrap(); 
+                            e_pos = Some(1);            // e is second char after the 1
+                        } else {                         
+                            e_pos = Some(l.try_into().unwrap()); //or e is where we are in the loop over l
                         }
+                        outstr.push('E').unwrap(); // don't forget to return the E!
                     } else {
                         info!("--- Not processed: key is {}", c);
-                        e_pos = None;
                         outstr.push(c).unwrap();  
                     }  
                 }
@@ -270,78 +266,39 @@ impl <'a> DisplayStruct <'a>{
                 info!("epos = {}",e_pos);
                 (outstr, e_pos)
             }; 
+    
 
-
-        let x_buffer_str = Some(outstr.clone());
         let (y_buffer_str, ye_pos) = self.num_to_string(y);
         let (z_buffer_str, ze_pos) = self.num_to_string(z);
         let (t_buffer_str, te_pos) = self.num_to_string(t);
 
-        self.draw_one_line(x_buffer_str, e_pos, DisplayLine::X);
+        self.draw_one_line(Some(outstr.clone()), e_pos, DisplayLine::X);
         self.draw_one_line(Some(y_buffer_str), ye_pos, DisplayLine::Y);
         self.draw_one_line(Some(z_buffer_str), ze_pos, DisplayLine::Z);
         self.draw_one_line(Some(t_buffer_str), te_pos, DisplayLine::T);
 
-
-        // let _= Text::new("x", Point::new(NAME_LEFT, X_LABEL_BOTTOM), self.stack_names_font).draw(&mut self.display);
-        // let _ = Text::new(":", Point::new(COLON_LEFT, X_LABEL_BOTTOM), self.stack_names_font).draw(&mut self.display);
-        // let _ = Text::new(&x_buffer_str, Point::new(NUM_LEFT, X_NUM_BOTTOM), self.font).draw(&mut self.display);
-        // if e_pos.is_some() {
-        //     let _ = Text::new("E", Point::new(NUM_LEFT + NUM_WIDTH * e_pos.unwrap() + 2, X_NUM_BOTTOM-2), self.e_font).draw(&mut self.display);
-        // }
-
-        // let (y_buffer_str, e_pos) = self.num_to_string(y);
-        // let _= Text::new("y", Point::new(NAME_LEFT, Y_LABEL_BOTTOM), self.stack_names_font).draw(&mut self.display);
-        // let _ = Text::new(":", Point::new(COLON_LEFT, Y_LABEL_BOTTOM), self.stack_names_font).draw(&mut self.display);
-        // let _ = Text::new(&y_buffer_str, Point::new(NUM_LEFT, Y_NUM_BOTTOM), self.font).draw(&mut self.display);
-        // if e_pos.is_some() {
-        //     let _ = Text::new("E", Point::new(NUM_LEFT + 10 * e_pos.unwrap() + 1, Y_NUM_BOTTOM-2), self.e_font).draw(&mut self.display);
-        // }
-
-        // let (z_buffer_str , e_pos)= self.num_to_string(z,);
-        // let _= Text::new("z", Point::new(NAME_LEFT, Z_LABEL_BOTTOM), self.stack_names_font).draw(&mut self.display);
-        // let _ = Text::new(":", Point::new(COLON_LEFT, Z_LABEL_BOTTOM), self.stack_names_font).draw(&mut self.display);
-        // let _ = Text::new(&z_buffer_str, Point::new(NUM_LEFT, Z_NUM_BOTTOM), self.font).draw(&mut self.display);
-        // if e_pos.is_some() {
-        //     let _ = Text::new("E", Point::new(NUM_LEFT + 10 * e_pos.unwrap() + 2, Z_NUM_BOTTOM-2), self.e_font).draw(&mut self.display);
-        // }
-
-        // let (t_buffer_str, e_pos) = self.num_to_string(t);
-        // let _= Text::new("t", Point::new(NAME_LEFT, T_LABEL_BOTTOM), self.stack_names_font).draw(&mut self.display);
-        // let _ = Text::new(":", Point::new(COLON_LEFT, T_LABEL_BOTTOM), self.stack_names_font).draw(&mut self.display);
-        // let _ = Text::new(&t_buffer_str, Point::new(NUM_LEFT, T_NUM_BOTTOM), self.font).draw(&mut self.display);
-        // if e_pos.is_some() {
-        //     let _ = Text::new("E", Point::new(NUM_LEFT + 10 * e_pos.unwrap() + 2, T_NUM_BOTTOM-2), self.e_font).draw(&mut self.display);
-        // }
-
-        // self.display.reset(&mut self.reset_pin, &mut Delay).unwrap();
+    
         self.display.flush().unwrap();       // Flushes internal buffer to the display
 
     }
 
 
-const NAME_LEFT: i32 = 1;
-const COLON_LEFT: i32 = 6;
-const NUM_LEFT: i32 = 15; 
-const NUM_WIDTH: i32 = 10;
-const LINE_SPACING: i32 = 15;
-const X_BOTTOM: i32 = 62;
-
-
-// const NAME_LEFT: i32 = 1;
-// const COLON_LEFT: i32 = 6;
-// const NUM_LEFT: i32 = 15; 
-// const NUM_WIDTH: i32 = 10;
-// const LINE_SPACING: i32 = 15;
-const NUMBER_BOTTOM: i32 = 62;
-// const Y_BOTTOM: i32 = X_NUM_BOTTOM - LINE_SPACING;
-// const Z_BOTTOM: i32 = X_NUM_BOTTOM - 2*LINE_SPACING;
-// const T_BOTTOM: i32 = X_NUM_BOTTOM - 3*LINE_SPACING;
-const LABEL_BOTTOM: i32 = 59;
-// const Y_LABEL_BOTTOM: i32 = X_LABEL_BOTTOM - LINE_SPACING;
-// const Z_LABEL_BOTTOM: i32 = X_LABEL_BOTTOM - 2*LINE_SPACING;
-// const T_LABEL_BOTTOM: i32 = X_LABEL_BOTTOM - 3*LINE_SPACING;
-
+    pub fn replace_letter(entry_line: Option<String<20>>, letter_out: char, letter_in: char)->Option<String<20>>{
+        let mut out:String<20> = String::new();
+        if entry_line.is_none(){
+            return None;
+        };
+        let line = entry_line.unwrap();
+        for c in line.chars(){
+            if c == letter_out {
+                out.push(letter_in);
+            } else {
+                out.push(c);
+            }
+        }
+        Some(out)
+    }
+  
 
     pub fn draw_one_line(&mut self, entry_line: Option<String<20>>, e_pos: Option<i32>, target: DisplayLine){ 
 
@@ -361,23 +318,27 @@ const LABEL_BOTTOM: i32 = 59;
         };
 
         let mut none_line = String::<20>::new();
-        let _ = write!(none_line, "");
+        let _ = write!(none_line, "none line");
         
 
-// HERE: replace the e in entry_line with a space
+        // HERE: replace the e in entry_line with a space
+        Self::replace_letter(entry_line.clone(), 'E', ' ');
+        if entry_line.is_none(){
+            return;
+        }
+        let line = entry_line.unwrap();
 
-        let entry_line = match entry_line {
-                            Some(line) => line,
-                            None=> none_line,
-        };
-
-        let x_buffer_str = entry_line.clone();
+        // let x_buffer_str = entry_line.clone().unwrap();;
         let _= Text::new(letter, Point::new(NAME_LEFT, label_bottom), self.stack_names_font).draw(&mut self.display);
         let _ = Text::new(":", Point::new(COLON_LEFT, label_bottom), self.stack_names_font).draw(&mut self.display);
-        let _ = Text::new(&entry_line, Point::new(NUM_LEFT, number_bottom), self.font).draw(&mut self.display);
+        let _ = Text::new(&line, Point::new(NUM_LEFT, number_bottom), self.font).draw(&mut self.display);
         if e_pos.is_some() {
             let _ = Text::new("E", Point::new(NUM_LEFT + NUM_WIDTH * e_pos.unwrap() + 2, number_bottom-2), self.e_font).draw(&mut self.display);
         }
+        // Put back the e
+        Self::replace_letter(Some(line), ' ', 'E');
         
-        }
+    }
 }
+
+// ZERO OUT the input string when enter is hit

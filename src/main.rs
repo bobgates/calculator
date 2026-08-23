@@ -177,7 +177,6 @@ async fn main (_spawner: Spawner) {
     let cols = [col1, col2, col3, col4, col5, col6];
 
     let mut keyboard = Keyboard::new(rows, cols);
-    // let mut editing = false;
     let mut line_edit = LineEdit::new();
     
     // let mut stack = stack::Stack::new();                                        // creation of the stack object
@@ -193,37 +192,28 @@ async fn main (_spawner: Spawner) {
             continue;
         } else {
             let k = k.unwrap();
-            // info!("{} key pressed", k);         
+            info!("main: {} key pressed", k);         
             let result = line_edit.process_key(k);      
-            info!("Result from number_edit::process_key: {:?}", result);
-
+            
             if let Some(number) = result {
-                info!("Some result: {}", &result.unwrap());
+                info!("Some result in main: {}", &result.unwrap());
                 display.push_stack(number);
                 display.update_stack_display(None);
             } else {
-                info!("No result");
+                info!("No result in main around line 200");
             }
-        
+
             // info!("Back in main loop");
 
             // number_edit
             let mut number_str: String<20> = String::new();
             
 
-            info!("Number Buffer");
-            for c in line_edit.get_number().chars() {
-                info!("-- {}", c);
-                number_str.push(c).unwrap();
-            }
-            info!("---------------");
-
-
             display.update_stack_display(Some(number_str));
             // stack.swapxy();
             // stack.set_changed();                                            //
-            display.entry.editing = !display.entry.editing;
-            info!("Editing: {}\n\n", display.entry.editing);
+            //display.entry.editing = !display.entry.editing;
+            info!("Editing in main around line 226: {}\n\n", display.entry.editing);
                 //100E6 is about once per second
         }
     }

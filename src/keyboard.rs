@@ -65,11 +65,11 @@ pub enum KeyName{
 }
 
 pub const ENTER_AND_EDIT_ENTRY_MODE: EnumSet<KeyName> = enum_set!(
-    KeyName::Number0 | KeyName::Number1 | KeyName::Number2 |    // These all work in number entry mode
+    KeyName::Number0 | KeyName::Number1 | KeyName::Number2 |    // These all work in stack mode
     KeyName::Number3 |  KeyName::Number4 |  KeyName::Number5 |  // and take you into number entry mode
     KeyName::Number6 |  KeyName::Number7 |  KeyName::Number8 |  
     KeyName::Number9 | KeyName::DecimalPoint | 
-    KeyName::E | KeyName::Enter | KeyName::Back);
+    KeyName::E | KeyName::Back);
 
 pub const WORK_IN_ENTRY_MODE: EnumSet<KeyName> = enum_set!( KeyName::PlusMinus | KeyName::Enter | KeyName::Back );             // Works in number mode
 
@@ -116,9 +116,10 @@ impl Keyboard {
     }
 
     pub fn works_in_entry_mode(key: KeyName)->bool{
-        ENTER_AND_EDIT_ENTRY_MODE.contains(key)|WORK_IN_ENTRY_MODE.contains(key)        
+        WORK_IN_ENTRY_MODE.contains(key)        
     }
 
+    // All keys not above work in entry mode by getting out of it.
 
     
     // Scans the hardware and returns a key, mapped as defined above
