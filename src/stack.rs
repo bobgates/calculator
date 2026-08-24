@@ -54,9 +54,10 @@ use crate::keyboard::KeyName;
 //     Multiply,
 //     Error,
 // }
-#[derive(Copy, Clone)]
 
 
+
+#[derive(Copy, Clone, Debug)]
 pub struct Stack{
     x: f64,
     y: f64,
@@ -125,7 +126,18 @@ impl Stack {
         self.z = self.y;
         self.y = self.x;
         self.x = x;
-        info!("Stack is now x: {}, y: {}, z: {}, t: {}", self.x, self.y, self.z, self.t);                   //
+        info!("In push, stack is now x: {}, y: {}, z: {}, t: {}", self.x, self.y, self.z, self.t);                   //
+        // self.x = entry;   /
+        self.changed = true;
+        // Leaves x in y and in x
+    }
+
+    pub fn push_x(&mut self) {
+        info!("Push x up the stack");
+        self.t = self.z;
+        self.z = self.y;
+        self.y = self.x;
+        info!("In push_x, stack is now x: {}, y: {}, z: {}, t: {}", self.x, self.y, self.z, self.t);                   //
         // self.x = entry;   /
         self.changed = true;
         // Leaves x in y and in x

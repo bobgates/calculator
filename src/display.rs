@@ -6,6 +6,9 @@ use core::fmt::Write;
 // use core::num;
 use display_interface_spi::SPIInterface;
 
+use embassy_rp::gpio::Output;
+use embassy_rp::peripherals::{SPI0};
+use embassy_sync::blocking_mutex::raw::NoopRawMutex;
 use embassy_time::Delay;
 
 
@@ -21,16 +24,11 @@ use heapless::pool::boxed::Box;
 // use heapless::string::StringInner;
 
 use crate::line_edit::LineEdit;
+use crate::stack::Stack;
 
 use st7565::displays::DOGL128_6;
 use st7565::ST7565;
 use st7565::modes::GraphicsMode;
-
-
-use embassy_rp::gpio::Output;
-use embassy_rp::peripherals::{SPI0};
-
-use embassy_sync::blocking_mutex::raw::NoopRawMutex;
 
 use crate::stack;
 use num_traits::float::FloatCore;
@@ -69,10 +67,10 @@ pub struct DisplayStruct <'a>{
     stack_names_font: MonoTextStyle<'a, BinaryColor>,
     e_font: MonoTextStyle<'a, BinaryColor>,
     // f_font: MonoTextStyle<'a, BinaryColor>,
-    stack: stack::Stack,
+    pub stack: stack::Stack,
     number_style: DisplayStyle,
     eline : Option<String<20>>,
-    pub entry: LineEdit,
+    pub entry: LineEdit<'a>,
 }
 
 impl <'a> DisplayStruct <'a>{
@@ -83,7 +81,7 @@ impl <'a> DisplayStruct <'a>{
                 e_font: MonoTextStyle<'a, BinaryColor>,
                 // f_font: MonoTextStyle<'a, BinaryColor>,
                 number_style: DisplayStyle,
-                stack: stack::Stack,
+                stack: &'a mut stack::Stack,
             ) -> Self {
         
         display.reset(&mut reset_pin, &mut Delay).unwrap();
@@ -92,12 +90,12 @@ impl <'a> DisplayStruct <'a>{
             display, 
             reset_pin,
             font,
-            stack,
+            stack: Stack::new(),
             stack_names_font,
             e_font,
             number_style,
             eline: None,
-            entry: LineEdit::new(),
+            entry: LineEdit::new(stack),
         }
     }
 

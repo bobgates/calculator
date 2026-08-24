@@ -151,7 +151,7 @@ async fn main (_spawner: Spawner) {
     let display: ST7565<SPIInterface<embassy_embedded_hal::shared_bus::blocking::spi::SpiDeviceWithConfig<'_, NoopRawMutex, embassy_rp::spi::Spi<'_, SPI0, embassy_rp::spi::Blocking>, Output<'_>>, Output<'_>>, DOGL128_6, GraphicsMode<'_, 128, 8>, 128, 64, 8> = st7565::ST7565::new(display_interface, DOGL128_6)
         .into_graphics_mode(&mut page_buffer);   
         
-
+    let mut stack = stack::Stack::new();
     let mut display: DisplayStruct =  DisplayStruct::new(
         display,
         reset_pin,
@@ -159,7 +159,7 @@ async fn main (_spawner: Spawner) {
         MonoTextStyle::new(&FONT_7X13, BinaryColor::On),        // stack names
         MonoTextStyle::new(&FONT_7X13, BinaryColor::On),        // E
         DisplayStyle::E(4),
-        stack::Stack::new(),
+        &mut stack,
     );
     
     display.set_on(true);
@@ -188,7 +188,7 @@ async fn main (_spawner: Spawner) {
     let cols = [col1, col2, col3, col4, col5, col6];
 
     let mut keyboard = Keyboard::new(rows, cols);
-    let mut line_edit = LineEdit::new();
+    let mut line_edit = LineEdit::new(&mut display.stack);
     
     // let mut stack = stack::Stack::new();                                        // creation of the stack object
 
@@ -207,13 +207,13 @@ async fn main (_spawner: Spawner) {
             // let (result, editing) =
              line_edit.process_key(k);      
 // Okay, now figure out how to carry on with the outputs from process_key()
-            if let Some(number) = result {
-                info!("Some result in main: {}", &result.unwrap());
-                display.push_stack(number);
-                display.update_stack_display(None);
-            } else {
-                info!("No result in main around line 200");
-            }
+            // if let Some(number) = result {
+            //     info!("Some result in main: {}", &result.unwrap());
+            //     display.push_stack(number);
+            //     display.update_stack_display(None);
+            // } else {
+            //     info!("No result in main around line 200");
+            // }
 
             // info!("Back in main loop");
 
@@ -225,7 +225,7 @@ async fn main (_spawner: Spawner) {
             // stack.swapxy();
             // stack.set_changed();                                            //
             //display.entry.editing = !display.entry.editing;
-            info!("Editing in main around line 226: {}\n\n", display.entry.editing);
+            // info!("Editing in main around line 226: {}\n\n", display.entry.editing);
                 //100E6 is about once per second
         }
     }

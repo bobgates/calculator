@@ -10,17 +10,24 @@ It then goes into a loop, forever:
 - scan the keyboard and await
 - if there are no key presses, delay and scan again.
 
-- if there are key presses:
-    go to *line_edit.process key*
-
 ## Line_edit
-Line edit only contains two variables:
+
+Line edit only contains:
+
+- a mutable reference to the stack
+- an enum called State that knows what state the system is in: Editing or Calculating at the moment - others may be added.
 - editing: bool 
-- line: String
+- line: String<EDIT_LENGTH>
 
 ### Line_edit::process_key
-*process_key* intially differentiates between two states: *editing* and *calculating .
 
-** I should convert this to an enum to allow for other states in the future. DONE! **
+*process_key* intially differentiates between two states: *editing* and *calculating. It then hands the key on to either
 
+- process_number_key or
+- process_calculate_key.
 
+## Display
+
+- Display owns the stack.
+- It also owns the code that puts data out in the correct form for the display.
+- Finally display owns Line_edit

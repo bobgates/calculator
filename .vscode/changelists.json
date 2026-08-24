@@ -3,10 +3,12 @@
     {
       "name": "Default",
       "files": [
+        "src/line_edit.rs",
         ".vscode/changelists.json",
         "docs/plan.md",
+        "src/stack.rs",
         "src/main.rs",
-        "src/line_edit.rs"
+        "src/display.rs"
       ]
     }
   ],

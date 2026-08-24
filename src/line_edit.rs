@@ -19,15 +19,18 @@ use crate::keyboard::KeyName;
 // use crate::Keyboard::
 // use crate::keyboard::KEYNAME;
 
-// const EDIT_LENGTH: usize = 20;      // Maximum length of internal buffer
-const EDIT_LENGTH: usize = 20;      // Two spare characters if there are a couple of off by 1 errors!
+const EDIT_LENGTH: usize = 22;      // Two spare characters if there are a couple of off by 1 errors!
+
+use crate::stack::Stack;
 
 use crate::State;
 use crate::State::{Calculating, Editing, Undefined};
 
-#[derive(Clone, Debug)]
-pub struct LineEdit{
+#[derive(Debug)]
+pub struct LineEdit<'a>{
+    stack: &'a mut Stack,
     pub state: State,
+    pub previous_state: State, 
     pub line: String<EDIT_LENGTH>,
     // stack: crate::stack::Stack,
 }
@@ -39,7 +42,11 @@ pub struct LineEdit{
 
     If it is not editing then any key in 
         ENTER_AND_EDIT_ENTRY_MODE
-            puts it into edit and it will now also accept:
+            puts the key into edit 
+            
+            
+            
+            and it will now also accept:
         WORK_IN_ENTRY_MODE
         Then process with those keys to build up a number
         If any other Key arrives:
@@ -52,20 +59,33 @@ pub struct LineEdit{
 
 
 
-impl LineEdit{
-    pub fn new( /*stack: crate::stack::Stack*/)->LineEdit{
+impl LineEdit<'_>{
+    pub fn new(stack: &mut crate::stack::Stack)->LineEdit{
+
         let line = String::<EDIT_LENGTH>::new();
-        let state = Calculating;    
-        LineEdit { state, line}
+        let state = Calculating; 
+        let previous_state = Calculating;   
+        LineEdit { stack, state, previous_state, line}
     }
 
-    pub fn start_editing(&mut self){
-        self.state = Editing;
+    // pub fn start_editing(&mut self){
+    //     self.state = Editing;
+    // }
+
+    // pub fn stop_editing(&mut self){
+    //     self.state = Calculating;
+    // }
+
+    pub fn process_calculate_key(&mut self, key: KeyName){
+        info!("process_calculate_key: {}", key);      
+        match key{
+            KeyName::Enter => {
+                self.stack.push_x();
+            },
+            _ => {info!("\t\tI don't yet know how to process {}", key)}
+        }  
     }
 
-    pub fn stop_editing(&mut self){
-        self.state = Calculating;
-    }
 
     pub fn process_number_keys(&mut self, key: KeyName)->Option<f64> {  
 
@@ -82,7 +102,7 @@ impl LineEdit{
                             let a = result.unwrap();
                             info!("    pnk: result is ok, parsed value: {}", a);
                             // info!("process_number_keys: set editing to FALSE");
-                            self.stop_editing();
+                            // self.stop_editing();
                             return Some(a);
                         } else {
                             info!("    pnk: result is NOT ok");
@@ -95,7 +115,7 @@ impl LineEdit{
                     Calculating => {
                         info!("calculating");
                         info!("process_number_keys: set editing to TRUE");
-                        self.start_editing(); 
+                        // self.start_editing(); 
                         return None;
                     },
                     Undefined => {
@@ -176,26 +196,27 @@ impl LineEdit{
 
     // Eats the current key and routes it to numbers or calcs
     pub fn process_key(&mut self, key: KeyName) { //-> (Option<f64>, State) {
-        let mut new_state: State; 
-        if self.state == Editing{
-            if !Self::works_in_entry_mode(key){
-                self.state = Calculating;
-                info!("set self.state to calculating");
+        match self.state {
+            Editing => {
+                if Self::works_in_entry_mode(key){
+                    self.process_number_keys(key);
+                } else {
+                    self.state = Calculating;
+                    info!("set self.state to calculating");
+                }
+            },
+            Calculating => {
+                if Self::enters_entry_mode(key){
+                    self.state = Editing;
+                    info!("self.editing set to true!!!!!!!!");
+                } else {
+                    self.process_calculate_key(key);
+                }
             }
-        } else {
-            if Keyboard::enters_entry_mode(key){
-                self.state = Editing;
-                info!("self.editing set to true!!!!!!!!");
+            Undefined => {
+                info!("process key has entered Undefined state...");
             }
-        };
-        if self.state == Calculating{
-            info!("is a number key but we're in calculting, so change state");
-            self.state= Editing; 
-        } else {
-            self.state = Calculating;
-            //Process command
-            info!("not a number key - to be implemented ");        
-        };
+        }
     }
 
     pub fn is_number_element(key: KeyName)->bool{
@@ -206,7 +227,15 @@ impl LineEdit{
         WORK_IN_ENTRY_MODE.contains(key)        
     }
 
-    pub fn get_number(&self) -> String<20> {
+    // Any key that triggers a change in mode to 
+    // entry. Does not include eg: PLUS_MINUS
+    // because that works in entry mode but
+    // works different in calculating mode
+    pub fn enters_entry_mode(key: KeyName)->bool{
+        ENTER_AND_EDIT_ENTRY_MODE.contains(key)
+    }
+
+    pub fn get_number(&self) -> String<22> {
         self.line.clone()
     }
 }
