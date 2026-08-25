@@ -5,10 +5,10 @@
       "files": [
         "src/line_edit.rs",
         ".vscode/changelists.json",
-        "docs/plan.md",
-        "src/stack.rs",
         "src/main.rs",
-        "src/display.rs"
+        "src/display.rs",
+        "src/keyboard.rs",
+        "src/stack.rs"
       ]
     }
   ],

@@ -3,17 +3,17 @@
 //! and strings except when asked to return the value as a number
 
 // use core::{f64, num};
-use core::fmt::Write;
-use core::{fmt, result};
+// use core::fmt::Write;
+// use core::{fmt, result};
 use defmt::{info};//, 
-use defmt::Format;
+// use defmt::Format;
 
 // use heapless::Format;
 use heapless::String;
 
 
 
-use crate::keyboard::Keyboard;
+// use crate::keyboard::Keyboard;
 use crate::keyboard::{ENTER_AND_EDIT_ENTRY_MODE, WORK_IN_ENTRY_MODE};
 use crate::keyboard::KeyName;
 // use crate::Keyboard::
@@ -24,29 +24,26 @@ const EDIT_LENGTH: usize = 22;      // Two spare characters if there are a coupl
 use crate::stack::Stack;
 
 use crate::State;
-use crate::State::{Calculating, Editing, Undefined};
+use crate::State::{Calculating, Editing};//, Undefined};
 
 #[derive(Debug)]
-pub struct LineEdit<'a>{
-    stack: &'a mut Stack,
+pub struct LineEdit{//<'a>{
+    pub stack: Stack,
     pub state: State,
-    pub previous_state: State, 
+    // pub previous_state: State, 
     pub line: String<EDIT_LENGTH>,
     // stack: crate::stack::Stack,
 }
 
 /*
-
     Every key press calls LineEdit process key
-    LineEdit has two states: editing or not editing.
+    LineEdit has two working states: editing or not editing.
 
     If it is not editing then any key in 
         ENTER_AND_EDIT_ENTRY_MODE
-            puts the key into edit 
-            
-            
-            
-            and it will now also accept:
+            puts LineEdit into Editing 
+          
+       which will now allow it also accept keys in:
         WORK_IN_ENTRY_MODE
         Then process with those keys to build up a number
         If any other Key arrives:
@@ -54,18 +51,17 @@ pub struct LineEdit<'a>{
           a zero on error.
         - push the number
         - turn off ENTER_AND_EDIT_ENTRY_MODE
-
 */
 
 
 
-impl LineEdit<'_>{
-    pub fn new(stack: &mut crate::stack::Stack)->LineEdit{
+impl LineEdit{//<'_>{
+    pub fn new(stack: crate::stack::Stack)->LineEdit{
 
         let line = String::<EDIT_LENGTH>::new();
         let state = Calculating; 
-        let previous_state = Calculating;   
-        LineEdit { stack, state, previous_state, line}
+        // let previous_state = Calculating;   
+        LineEdit { stack, state, /*previous_state,*/ line}
     }
 
     // pub fn start_editing(&mut self){
@@ -101,8 +97,6 @@ impl LineEdit<'_>{
                         if result.is_ok() {
                             let a = result.unwrap();
                             info!("    pnk: result is ok, parsed value: {}", a);
-                            // info!("process_number_keys: set editing to FALSE");
-                            // self.stop_editing();
                             return Some(a);
                         } else {
                             info!("    pnk: result is NOT ok");
@@ -118,10 +112,10 @@ impl LineEdit<'_>{
                         // self.start_editing(); 
                         return None;
                     },
-                    Undefined => {
-                        info!("WAAAK WAAAK WAAAK - state is undefined, should never happen");
-                        return None;
-                    }
+                    // Undefined => {
+                    //     info!("WAAAK WAAAK WAAAK - state is undefined, should never happen");
+                    //     return None;
+                    // }
                 }
             },                          //----------------------------**************************************** WORK HERE
             KeyName::Back => 
@@ -213,15 +207,15 @@ impl LineEdit<'_>{
                     self.process_calculate_key(key);
                 }
             }
-            Undefined => {
-                info!("process key has entered Undefined state...");
-            }
+            // Undefined => {
+            //     info!("process key has entered Undefined state...");
+            // }
         }
     }
 
-    pub fn is_number_element(key: KeyName)->bool{
-       ENTER_AND_EDIT_ENTRY_MODE.contains(key)|WORK_IN_ENTRY_MODE.contains(key)
-    }
+    // pub fn is_number_element(key: KeyName)->bool{
+    //    ENTER_AND_EDIT_ENTRY_MODE.contains(key)|WORK_IN_ENTRY_MODE.contains(key)
+    // }
 
     pub fn works_in_entry_mode(key: KeyName)->bool{
         WORK_IN_ENTRY_MODE.contains(key)        
@@ -235,9 +229,9 @@ impl LineEdit<'_>{
         ENTER_AND_EDIT_ENTRY_MODE.contains(key)
     }
 
-    pub fn get_number(&self) -> String<22> {
-        self.line.clone()
-    }
+    // pub fn get_number(&self) -> String<22> {
+    //     self.line.clone()
+    // }
 }
     
 

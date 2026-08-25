@@ -2,7 +2,7 @@
 #![no_main]
 
 use core::cell::RefCell;
-use core::fmt::Write;
+// use core::fmt::Write;
 
 // use core::mem::MaybeUninit;
 
@@ -93,7 +93,7 @@ struct FlashLedStruct {
 
 #[derive(Clone, Debug, Copy, PartialEq)]
 enum State {
-    Undefined,
+    // Undefined,
     Editing,
     Calculating,
 }
@@ -117,7 +117,7 @@ impl FlashLedStruct {
 #[embassy_executor::main]
 async fn main (_spawner: Spawner) {
     let p = embassy_rp::init(Default::default());
-    let mut buffer = String::<32>::new();
+    let mut _buffer = String::<32>::new();
 
     info!("Started");
 
@@ -160,6 +160,7 @@ async fn main (_spawner: Spawner) {
         MonoTextStyle::new(&FONT_7X13, BinaryColor::On),        // E
         DisplayStyle::E(4),
         &mut stack,
+        // &mut stack::Stack::new(),
     );
     
     display.set_on(true);
@@ -188,11 +189,11 @@ async fn main (_spawner: Spawner) {
     let cols = [col1, col2, col3, col4, col5, col6];
 
     let mut keyboard = Keyboard::new(rows, cols);
-    let mut line_edit = LineEdit::new(&mut display.stack);
+    let mut line_edit = LineEdit::new(display.stack);
     
     // let mut stack = stack::Stack::new();                                        // creation of the stack object
 
-    let mut buffer = String::<32>::new();
+    let mut _buffer = String::<32>::new();
 
     loop{
         //100E6 is about once per second
@@ -218,7 +219,7 @@ async fn main (_spawner: Spawner) {
             // info!("Back in main loop");
 
             // number_edit
-            let mut number_str: String<20> = String::new();
+            let number_str: String<20> = String::new();
             
 
             display.update_stack_display(Some(number_str));

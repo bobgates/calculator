@@ -1,7 +1,7 @@
 
 // use cortex_m::asm::delay;
 use defmt::info;
-use core::{f64, todo};
+use core::f64;//, todo};
 use core::fmt::Write;
 // use core::num;
 use display_interface_spi::SPIInterface;
@@ -20,7 +20,7 @@ use embedded_graphics::{prelude::*};
 use embedded_graphics::text::Text;
 
 use heapless::{format, String};
-use heapless::pool::boxed::Box;
+// use heapless::pool::boxed::Box;
 // use heapless::string::StringInner;
 
 use crate::line_edit::LineEdit;
@@ -62,7 +62,7 @@ pub enum DisplayLine{
 // #[derive(Clone)]
 pub struct DisplayStruct <'a>{
     pub display: ST7565<SPIInterface<embassy_embedded_hal::shared_bus::blocking::spi::SpiDeviceWithConfig<'a, NoopRawMutex, embassy_rp::spi::Spi<'a, SPI0, embassy_rp::spi::Blocking>, Output<'a>>, Output<'a>>, DOGL128_6, GraphicsMode<'a, 128, 8>, 128, 64, 8>,
-    reset_pin: Output<'a>,
+    // reset_pin: Output<'a>,
     font: MonoTextStyle<'a, BinaryColor>,
     stack_names_font: MonoTextStyle<'a, BinaryColor>,
     e_font: MonoTextStyle<'a, BinaryColor>,
@@ -70,7 +70,7 @@ pub struct DisplayStruct <'a>{
     pub stack: stack::Stack,
     number_style: DisplayStyle,
     eline : Option<String<20>>,
-    pub entry: LineEdit<'a>,
+    pub _entry: LineEdit,
 }
 
 impl <'a> DisplayStruct <'a>{
@@ -81,27 +81,27 @@ impl <'a> DisplayStruct <'a>{
                 e_font: MonoTextStyle<'a, BinaryColor>,
                 // f_font: MonoTextStyle<'a, BinaryColor>,
                 number_style: DisplayStyle,
-                stack: &'a mut stack::Stack,
+                stack: &mut stack::Stack,
             ) -> Self {
         
         display.reset(&mut reset_pin, &mut Delay).unwrap();
 
         Self { 
             display, 
-            reset_pin,
+            // reset_pin,
             font,
             stack: Stack::new(),
             stack_names_font,
             e_font,
             number_style,
             eline: None,
-            entry: LineEdit::new(stack),
+            _entry: LineEdit::new(*stack),
         }
     }
 
-    pub fn push_stack(&mut self, value: f64) {
-        self.stack.push(value);
-    }
+    // pub fn push_stack(&mut self, value: f64) {
+    //     self.stack.push(value);
+    // }
 
    // Converts an f64 into a string with the correct number of significant figures, 
    // and returns the position of the 'E' if it is present
@@ -204,9 +204,9 @@ impl <'a> DisplayStruct <'a>{
         }
     }
     
-    pub fn get_display_style(&self) -> DisplayStyle{
-        self.number_style
-    }
+    // pub fn get_display_style(&self) -> DisplayStyle{
+    //     self.number_style
+    // }
 //todo!("check if set_on needs to be called twice");
     pub fn set_on(&mut self, on: bool) {
         // info!("switch display on");
@@ -230,7 +230,7 @@ impl <'a> DisplayStruct <'a>{
 
         let mut outstr: String<20>=String::new();
         let mut e_pos: Option<i32> = None;
-        let mut line : Option<String<20>> = None;
+        // let mut line : Option<String<20>> = None;
 
         
         let  (outstr, e_pos) = 
@@ -289,9 +289,9 @@ impl <'a> DisplayStruct <'a>{
         let line = entry_line.unwrap();
         for c in line.chars(){
             if c == letter_out {
-                out.push(letter_in);
+                let _ = out.push(letter_in);
             } else {
-                out.push(c);
+                let _ = out.push(c);
             }
         }
         Some(out)

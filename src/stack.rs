@@ -1,9 +1,9 @@
 use defmt::{info};
 
-use embassy_rp::pio::program::MovOperation::Invert;
-use libm::{*};
+// use embassy_rp::pio::program::MovOperation::Invert;
+// use libm::{*};
 
-use crate::keyboard::KeyName;
+// use crate::keyboard::KeyName;
 // use keyboard::KeyName::{*};
 
 // use crate::keyboard::KeyName::{Sqrt, XswapY};
@@ -120,17 +120,17 @@ impl Stack {
     }
 
 
-    pub fn push(&mut self, x: f64) {
-        info!("Pushed {} onto stack", x);
-        self.t = self.z;
-        self.z = self.y;
-        self.y = self.x;
-        self.x = x;
-        info!("In push, stack is now x: {}, y: {}, z: {}, t: {}", self.x, self.y, self.z, self.t);                   //
-        // self.x = entry;   /
-        self.changed = true;
-        // Leaves x in y and in x
-    }
+    // pub fn push(&mut self, x: f64) {
+    //     info!("Pushed {} onto stack", x);
+    //     self.t = self.z;
+    //     self.z = self.y;
+    //     self.y = self.x;
+    //     self.x = x;
+    //     info!("In push, stack is now x: {}, y: {}, z: {}, t: {}", self.x, self.y, self.z, self.t);                   //
+    //     // self.x = entry;   /
+    //     self.changed = true;
+    //     // Leaves x in y and in x
+    // }
 
     pub fn push_x(&mut self) {
         info!("Push x up the stack");
@@ -153,9 +153,9 @@ impl Stack {
         // Leaves a in a and in z
         temp
     }
-    pub fn set_changed(&mut self) {
-        self.changed = true;
-    }
+    // pub fn set_changed(&mut self) {
+    //     self.changed = true;
+    // }
     pub fn _changed(&mut self)->bool{
         self.changed
     }
@@ -164,11 +164,11 @@ impl Stack {
         (self.x, self.y, self.z, self.t)
     }
 
-    pub fn swapxy(&mut self){
-        let temp = self.x;
-        self.x = self.y;
-        self.y = temp;
-    }
+    // pub fn swapxy(&mut self){
+    //     let temp = self.x;
+    //     self.x = self.y;
+    //     self.y = temp;
+    // }
 
 
     pub fn _swapx_with_new_y(&mut self, new_y: f64){
@@ -184,7 +184,7 @@ impl Stack {
     pub fn _get_y(&mut self)->f64{
         return self.y;
     }
-
+/* 
     pub fn operate(mut self, key: KeyName){
 
         let mut x = self.x;
@@ -221,14 +221,9 @@ impl Stack {
         }
         self.x = x;
         self.y = y;
-
-
         return
-
-
-
     }
-
+*/
 
 
 

@@ -1,4 +1,4 @@
-use defmt::{info, /*error, info, println, warn,*/ Format};
+use defmt::Format;//{info, /*error, info, println, warn,*/ Format};
 
 use embassy_time::Timer;
 use embassy_rp::{gpio::{Input, Output}};//, multicore::current_core};
@@ -107,17 +107,17 @@ impl Keyboard {
         }
     }
 
-    pub fn enters_entry_mode(key: KeyName)->bool{
-        ENTER_AND_EDIT_ENTRY_MODE.contains(key)
-    }
+    // pub fn enters_entry_mode(key: KeyName)->bool{
+    //     ENTER_AND_EDIT_ENTRY_MODE.contains(key)
+    // }
 
-    pub fn is_number_element(key: KeyName)->bool{
-       ENTER_AND_EDIT_ENTRY_MODE.contains(key)|WORK_IN_ENTRY_MODE.contains(key)
-    }
+    // pub fn is_number_element(key: KeyName)->bool{
+    //    ENTER_AND_EDIT_ENTRY_MODE.contains(key)|WORK_IN_ENTRY_MODE.contains(key)
+    // }
 
-    pub fn works_in_entry_mode(key: KeyName)->bool{
-        WORK_IN_ENTRY_MODE.contains(key)        
-    }
+    // pub fn works_in_entry_mode(key: KeyName)->bool{
+    //     WORK_IN_ENTRY_MODE.contains(key)        
+    // }
 
     // All keys not above work in entry mode by getting out of it.
 
