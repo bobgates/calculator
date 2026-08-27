@@ -67,10 +67,10 @@ pub struct DisplayStruct <'a>{
     stack_names_font: MonoTextStyle<'a, BinaryColor>,
     e_font: MonoTextStyle<'a, BinaryColor>,
     // f_font: MonoTextStyle<'a, BinaryColor>,
-    pub stack: stack::Stack,
+    pub  stack: &'a mut stack::Stack,
     number_style: DisplayStyle,
     eline : Option<String<20>>,
-    pub _entry: LineEdit,
+    pub _entry: &'a LineEdit<'a>,
 }
 
 impl <'a> DisplayStruct <'a>{
@@ -81,7 +81,7 @@ impl <'a> DisplayStruct <'a>{
                 e_font: MonoTextStyle<'a, BinaryColor>,
                 // f_font: MonoTextStyle<'a, BinaryColor>,
                 number_style: DisplayStyle,
-                stack: &mut stack::Stack,
+                stack: &'a mut Stack,
             ) -> Self {
         
         display.reset(&mut reset_pin, &mut Delay).unwrap();
@@ -90,12 +90,12 @@ impl <'a> DisplayStruct <'a>{
             display, 
             // reset_pin,
             font,
-            stack: Stack::new(),
+            stack: stack, //Stack::new(),    // No - you were just handed a stack!
             stack_names_font,
             e_font,
             number_style,
             eline: None,
-            _entry: LineEdit::new(*stack),
+            _entry: & LineEdit::new(stack),
         }
     }
 

@@ -27,8 +27,8 @@ use crate::State;
 use crate::State::{Calculating, Editing};//, Undefined};
 
 #[derive(Debug)]
-pub struct LineEdit{//<'a>{
-    pub stack: Stack,
+pub struct LineEdit<'a>{
+    pub stack: &'a mut Stack,
     pub state: State,
     // pub previous_state: State, 
     pub line: String<EDIT_LENGTH>,
@@ -55,13 +55,12 @@ pub struct LineEdit{//<'a>{
 
 
 
-impl LineEdit{//<'_>{
-    pub fn new(stack: crate::stack::Stack)->LineEdit{
-
+impl <'a>LineEdit<'a>{//<'_>{
+    pub fn new(stack: &mut crate::stack::Stack)->LineEdit{
         let line = String::<EDIT_LENGTH>::new();
         let state = Calculating; 
         // let previous_state = Calculating;   
-        LineEdit { stack, state, /*previous_state,*/ line}
+        LineEdit { stack, state, line}
     }
 
     // pub fn start_editing(&mut self){

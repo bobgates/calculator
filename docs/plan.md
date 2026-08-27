@@ -16,7 +16,7 @@ Line edit only contains:
 
 - a mutable reference to the stack
 - an enum called State that knows what state the system is in: Editing or Calculating at the moment - others may be added.
-- editing: bool 
+- editing: bool
 - line: String<EDIT_LENGTH>
 
 ### Line_edit::process_key
@@ -31,3 +31,7 @@ Line edit only contains:
 - Display owns the stack.
 - It also owns the code that puts data out in the correct form for the display.
 - Finally display owns Line_edit
+
+
+## Stack ownership:
+

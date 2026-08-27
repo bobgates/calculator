@@ -147,7 +147,6 @@ async fn main (_spawner: Spawner) {
     let reset_pin = Output::new(reset, Level::Low);
     // let stacknames_font = MonoTextStyle::new(&FONT_7X13, BinaryColor::On);
 
-    // let mut stack = stack::Stack::new();
     let display: ST7565<SPIInterface<embassy_embedded_hal::shared_bus::blocking::spi::SpiDeviceWithConfig<'_, NoopRawMutex, embassy_rp::spi::Spi<'_, SPI0, embassy_rp::spi::Blocking>, Output<'_>>, Output<'_>>, DOGL128_6, GraphicsMode<'_, 128, 8>, 128, 64, 8> = st7565::ST7565::new(display_interface, DOGL128_6)
         .into_graphics_mode(&mut page_buffer);   
         
@@ -156,7 +155,7 @@ async fn main (_spawner: Spawner) {
         display,
         reset_pin,
         MonoTextStyle::new(&FONT_10X20, BinaryColor::On),       // Numbers
-        MonoTextStyle::new(&FONT_7X13, BinaryColor::On),        // stack names
+        MonoTextStyle::new(&FONT_7X13, BinaryColor::On), // stack names
         MonoTextStyle::new(&FONT_7X13, BinaryColor::On),        // E
         DisplayStyle::E(4),
         &mut stack,
@@ -166,7 +165,13 @@ async fn main (_spawner: Spawner) {
     display.set_on(true);
     let _ = display.display.flush();
     display.set_on(true);
-    display.update_stack_display(None);
+
+    let mut arb_line:String::<20> = String::new();
+    for c in "Some line".chars() {
+        let _= arb_line.push(c);
+    }
+
+    display.update_stack_display(Some(arb_line));
 
     // Keyboard pins
     let row1 = Input::new(p.PIN_2, Pull::Down);
