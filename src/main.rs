@@ -1,6 +1,8 @@
 #![no_std]
 #![no_main]
 
+mod hardware;
+
 use core::cell::RefCell;
 // use core::fmt::Write;
 
@@ -200,41 +202,41 @@ async fn main (_spawner: Spawner) {
 
     let mut _buffer = String::<32>::new();
 
-    loop{
-        //100E6 is about once per second
-        delay(10_000_000); 
-        let key = keyboard.scan();
-        let k: Option<keyboard::KeyName> =  key.await;
-        if k.is_none(){
-            continue;
-        } else {
-            let k = k.unwrap();
-            info!("main: {} key pressed", k);         
-            // let (result, editing) =
-             line_edit.process_key(k);      
-// Okay, now figure out how to carry on with the outputs from process_key()
-            // if let Some(number) = result {
-            //     info!("Some result in main: {}", &result.unwrap());
-            //     display.push_stack(number);
-            //     display.update_stack_display(None);
-            // } else {
-            //     info!("No result in main around line 200");
-            // }
+//     loop{
+//         //100E6 is about once per second
+//         delay(10_000_000); 
+//         let key = keyboard.scan();
+//         let k: Option<keyboard::KeyName> =  key.await;
+//         if k.is_none(){
+//             continue;
+//         } else {
+//             let k = k.unwrap();
+//             info!("main: {} key pressed", k);         
+//             // let (result, editing) =
+//              line_edit.process_key(k);      
+// // Okay, now figure out how to carry on with the outputs from process_key()
+//             // if let Some(number) = result {
+//             //     info!("Some result in main: {}", &result.unwrap());
+//             //     display.push_stack(number);
+//             //     display.update_stack_display(None);
+//             // } else {
+//             //     info!("No result in main around line 200");
+//             // }
 
-            // info!("Back in main loop");
+//             // info!("Back in main loop");
 
-            // number_edit
-            let number_str: String<20> = String::new();
+//             // number_edit
+//             let number_str: String<20> = String::new();
             
 
-            display.update_stack_display(Some(number_str));
-            // stack.swapxy();
-            // stack.set_changed();                                            //
-            //display.entry.editing = !display.entry.editing;
-            // info!("Editing in main around line 226: {}\n\n", display.entry.editing);
-                //100E6 is about once per second
-        }
-    }
+//             display.update_stack_display(Some(number_str));
+//             // stack.swapxy();
+//             // stack.set_changed();                                            //
+//             //display.entry.editing = !display.entry.editing;
+//             // info!("Editing in main around line 226: {}\n\n", display.entry.editing);
+//                 //100E6 is about once per second
+//         }
+//     }
 
 }
 

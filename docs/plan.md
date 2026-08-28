@@ -35,3 +35,7 @@ Line edit only contains:
 
 ## Stack ownership:
 
+
+
+<!-- Trying to move hardware definition out of main. Going to hack away most of the system to achieve it.
+ -->
