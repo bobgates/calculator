@@ -3,11 +3,11 @@
     {
       "name": "Default",
       "files": [
-        "docs/plan.md",
+        "src/hardware.rs",
         ".vscode/changelists.json",
-        "src/display.rs",
         "src/main.rs",
-        "src/hardware.rs"
+        "Cargo.lock",
+        "Cargo.toml"
       ]
     }
   ],

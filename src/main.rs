@@ -1,7 +1,7 @@
 #![no_std]
 #![no_main]
 
-mod hardware;
+// mod hardware;
 
 use core::cell::RefCell;
 // use core::fmt::Write;
@@ -121,7 +121,7 @@ async fn main (_spawner: Spawner) {
     let p = embassy_rp::init(Default::default());
     let mut _buffer = String::<32>::new();
 
-    info!("Started");
+    // info!("Started");
 
     let pico_led = Output::new(p.PIN_25, Level::High);
     let mut flash_led = FlashLedStruct::new(pico_led, 20_000_000);
@@ -132,7 +132,6 @@ async fn main (_spawner: Spawner) {
     let miso  = p.PIN_20;
     let display_cs = p.PIN_21;
     let clk = p.PIN_18;
-    let reset  = p.PIN_28;
     let a0 = p.PIN_27;
 
     let a0 = Output::new(a0, Level::Low);   
@@ -140,21 +139,23 @@ async fn main (_spawner: Spawner) {
 
     let spi = Spi::new_blocking(p.SPI0, clk, mosi, miso, display_config.clone());
     let spi_bus: Mutex<NoopRawMutex, _> = Mutex::new(RefCell::new(spi));
+
     let display_spi=SpiDeviceWithConfig::new(&spi_bus, Output::new(display_cs, Level::High), display_config);
     let display_interface: SPIInterface<SpiDeviceWithConfig<'_, NoopRawMutex, Spi<'_, SPI0, Blocking>, Output<'_>>, Output<'_>> = SPIInterface::new(display_spi, a0);
 
        info!("display interface created");
 
     let mut page_buffer = GraphicsPageBuffer::new();
+    let reset  = p.PIN_28;
     let reset_pin = Output::new(reset, Level::Low);
     // let stacknames_font = MonoTextStyle::new(&FONT_7X13, BinaryColor::On);
 
-    let display: ST7565<SPIInterface<embassy_embedded_hal::shared_bus::blocking::spi::SpiDeviceWithConfig<'_, NoopRawMutex, embassy_rp::spi::Spi<'_, SPI0, embassy_rp::spi::Blocking>, Output<'_>>, Output<'_>>, DOGL128_6, GraphicsMode<'_, 128, 8>, 128, 64, 8> = st7565::ST7565::new(display_interface, DOGL128_6)
+    let lcd: ST7565<SPIInterface<embassy_embedded_hal::shared_bus::blocking::spi::SpiDeviceWithConfig<'_, NoopRawMutex, embassy_rp::spi::Spi<'_, SPI0, embassy_rp::spi::Blocking>, Output<'_>>, Output<'_>>, DOGL128_6, GraphicsMode<'_, 128, 8>, 128, 64, 8> = st7565::ST7565::new(display_interface, DOGL128_6)
         .into_graphics_mode(&mut page_buffer);   
         
     let mut stack = stack::Stack::new();
     let mut display: DisplayStruct =  DisplayStruct::new(
-        display,
+        lcd,
         reset_pin,
         MonoTextStyle::new(&FONT_10X20, BinaryColor::On),       // Numbers
         MonoTextStyle::new(&FONT_7X13, BinaryColor::On), // stack names
@@ -164,6 +165,9 @@ async fn main (_spawner: Spawner) {
         // &mut stack::Stack::new(),
     );
     
+
+
+
     display.set_on(true);
     let _ = display.display.flush();
     display.set_on(true);

@@ -45,6 +45,7 @@ heapless = "0.9.3"
 num-traits = { version = "0.2", default-features = false, features = ["i128"] }
 libm = "0.2.16"
 enumset = "1.1.14"
+static_cell = "2.1.1"
 
 
 
