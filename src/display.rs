@@ -110,19 +110,14 @@ info!("In display after reset");
 
         display.flush().unwrap();       // Flushes internal buffer to the display
 
-
-        // loop{};
-
         Self { 
             display, 
             reset_pin,
             font,
             stack_names_font,
             e_font,
-            //stack: stack, //Stack::new(),    // No - you were just handed a stack!
             number_style,
             eline: None,
-            // _entry: & LineEdit::new(),
         }
     }
 
@@ -232,9 +227,7 @@ info!("In display after reset");
         }
     }
     
-    // pub fn get_display_style(&self) -> DisplayStyle{
-    //     self.number_style
-    // }
+
 //todo!("check if set_on needs to be called twice");
     pub fn set_on(&mut self, on: bool) {
         // info!("switch display on");

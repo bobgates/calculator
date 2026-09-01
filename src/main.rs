@@ -137,35 +137,31 @@ info!("Started");
 
 
     let mut page_buffer = GraphicsPageBuffer::new();
-    let reset_pin = Output::new(reset, Level::Low);
-    let font = MonoTextStyle::new(&FONT_10X20, BinaryColor::On);
-    let stacknames_font = MonoTextStyle::new(&FONT_7X13, BinaryColor::On);
-
-    let mut stack = stack::Stack::new();
+    
+    
 
     let display: ST7565<SPIInterface<embassy_embedded_hal::shared_bus::blocking::spi::SpiDeviceWithConfig<'_, NoopRawMutex, embassy_rp::spi::Spi<'_, SPI0, embassy_rp::spi::Blocking>, Output<'_>>, Output<'_>>, DOGL128_6, GraphicsMode<'_, 128, 8>, 128, 64, 8> = st7565::ST7565::new(display_interface, DOGL128_6)
         .into_graphics_mode(&mut page_buffer);   
-info!("display hardware initialised");
-
-
-
+// info!("display hardware initialised");
     
+    let reset_pin = Output::new(reset, Level::Low);
     let font = MonoTextStyle::new(&FONT_10X20, BinaryColor::On);
     let stacknames_font = MonoTextStyle::new(&FONT_7X13, BinaryColor::On);
     let e_font = MonoTextStyle::new(&FONT_7X13, BinaryColor::On);
-    let eline: Option<heapless::String<20>> = None;
+    //let eline: Option<heapless::String<20>> = None;
 
 
     let number_style =  DisplayStyle::E(4);
 
-    let mut display:DisplayStruct = DisplayStruct::new(
+    let mut display = DisplayStruct::new(
         display, //: ST7565<SPIInterface<embassy_embedded_hal::shared_bus::blocking::spi::SpiDeviceWithConfig<'a, NoopRawMutex, embassy_rp::spi::Spi<'a, SPI0, embassy_rp::spi::Blocking>, Output<'a>>, Output<'a>>, DOGL128_6, GraphicsMode<'a, 128, 8>, 128, 64, 8>,
-        reset_pin, //: Output<'a>, 
+        reset_pin,  
         font,// MonoTextStyle<'a, BinaryColor>,
         stacknames_font, //: MonoTextStyle<'a, BinaryColor>,
         e_font, //: MonoTextStyle<'a, BinaryColor>,
-        number_style,//: DisplayStyle,
+        number_style
     );
+    // };
 info!("display interface instantiated");
 
     display.set_on(true);
@@ -196,6 +192,8 @@ info!("display interface instantiated");
             Output::new(p.PIN_15, Level::Low),
         ],
     );
+
+let mut stack = stack::Stack::new();
 
     let mut line_edit = LineEdit::new();
 
