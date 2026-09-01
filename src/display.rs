@@ -3,6 +3,7 @@
 use defmt::info;
 use core::f64;//, todo};
 use core::fmt::Write;
+use core::mem::MaybeUninit;
 // use core::num;
 use display_interface_spi::SPIInterface;
 
@@ -13,16 +14,16 @@ use embassy_time::Delay;
 
 
 // use embedded_graphics::primitives::{Circle, PrimitiveStyle, Rectangle};
-// use embedded_graphics::mono_font::ascii::{FONT_7X13, FONT_10X20, FONT_9X18, FONT_9X18_BOLD};
+use embedded_graphics::mono_font::ascii::{FONT_7X13, FONT_10X20, FONT_9X18, FONT_9X18_BOLD};
 use embedded_graphics::mono_font::MonoTextStyle;
 use embedded_graphics::pixelcolor::BinaryColor;
 use embedded_graphics::{prelude::*};
 use embedded_graphics::text::Text;
 
 use heapless::{format, String};
+use heapless::string::StringInner;
 // use heapless::pool::boxed::Box;
-// use heapless::string::StringInner;
-
+// use heapless::vec::VecStorageInner;   
 use crate::line_edit::LineEdit;
 use crate::stack::Stack;
 
@@ -33,7 +34,18 @@ use st7565::modes::GraphicsMode;
 use crate::stack;
 use num_traits::float::FloatCore;
 
-
+const NUMBER_BOTTOM: i32 = 62;
+const LABEL_BOTTOM: i32 = 59;
+const LINE_SPACING: i32 = 15;
+const NAME_LEFT: i32 = 1;
+const COLON_LEFT: i32 = 6;
+const NUM_LEFT: i32 = 15; 
+const NUM_WIDTH: i32 = 10;
+const X_LABEL_BOTTOM: i32 = 59;
+const Y_LABEL_BOTTOM: i32 = X_LABEL_BOTTOM - LINE_SPACING;
+const Z_LABEL_BOTTOM: i32 = X_LABEL_BOTTOM - 2*LINE_SPACING;
+const T_LABEL_BOTTOM: i32 = X_LABEL_BOTTOM - 3*LINE_SPACING;
+const T_NUM_BOTTOM: i32 = NUMBER_BOTTOM - 3*LINE_SPACING;
 
 // The HP42S has a 131x16 pixel display - two lines by 22 characters. They look something like 1.6x1, height to width
 // The characters are 5 pixels wide and 7 high. with 1 pixel x spacing.
@@ -58,6 +70,7 @@ pub enum DisplayLine{
 }
 
 
+
 // #[derive(EnumSetType, Debug, Format)]
 // #[derive(Clone)]
 pub struct DisplayStruct <'a>{
@@ -67,7 +80,7 @@ pub struct DisplayStruct <'a>{
     stack_names_font: MonoTextStyle<'a, BinaryColor>,
     e_font: MonoTextStyle<'a, BinaryColor>,
     // f_font: MonoTextStyle<'a, BinaryColor>,
-    pub  stack: &'a mut stack::Stack,
+    // pub  stack: &'a mut stack::Stack,
     number_style: DisplayStyle,
     eline : Option<String<20>>,
     // pub _entry: &'a LineEdit<'a>,
@@ -81,10 +94,22 @@ impl <'a> DisplayStruct <'a>{
                 e_font: MonoTextStyle<'a, BinaryColor>,
                 // f_font: MonoTextStyle<'a, BinaryColor>,
                 number_style: DisplayStyle,
-                stack: &'a mut Stack,
+                // stack: &'a mut Stack,
             ) -> Self {
         
         display.reset(&mut reset_pin, &mut Delay).unwrap();
+
+        let _= Text::new("d", Point::new(NAME_LEFT, 2), stack_names_font).draw(&mut display);
+        let _ = Text::new(":", Point::new(COLON_LEFT, 2), stack_names_font).draw(&mut display);
+        let _ = Text::new("Hello world", Point::new(NUM_LEFT, 2), font).draw(&mut display);
+        // if e_pos.is_some() {
+        //     let _ = Text::new("E", Point::new(NUM_LEFT + NUM_WIDTH * e_pos.unwrap() + 2, number_bottom-2), self.e_font).draw(&mut self.display);
+        // }
+
+        info!("In hello world display");
+
+        display.flush().unwrap();       // Flushes internal buffer to the display
+
 
         Self { 
             display, 
@@ -92,7 +117,7 @@ impl <'a> DisplayStruct <'a>{
             font,
             stack_names_font,
             e_font,
-            stack: stack, //Stack::new(),    // No - you were just handed a stack!
+            //stack: stack, //Stack::new(),    // No - you were just handed a stack!
             number_style,
             eline: None,
             // _entry: & LineEdit::new(),
@@ -217,6 +242,7 @@ impl <'a> DisplayStruct <'a>{
 
         let num_str: String<20> =  format!("{}", "Screen on").unwrap();//Format!("{}".num);
         let _ =Text::new(&num_str, Point::new(0, 13), self.font).draw(&mut self.display);
+         self.display.flush().unwrap(); 
     }
 
     // Updates the display with the current stack values and the current entry line
@@ -224,13 +250,21 @@ impl <'a> DisplayStruct <'a>{
     pub fn update_stack_display(&mut self, entry_line: Option<String<20>>) {
         self.display.clear(BinaryColor::Off);
 
-        let (x, y, z, t) = self.stack.fetch_values();                   // This seems to work
-
+        // let (x, y, z, t) = self.stack.fetch_values();                   // This seems to work
+        let x:f64=0.0; let y:f64=0.0; let z:f64=0.0; let t:f64=0.0;
         info!("In display.update_stack_display - x: {}, y: {}, z: {}, t: {}", x, y, z, t);
 
         let mut outstr: String<20>=String::new();
         let mut e_pos: Option<i32> = None;
         // let mut line : Option<String<20>> = None;
+
+        let (t_buffer_str, _) = self.num_to_string(t);
+        let _= Text::new("t", Point::new(NAME_LEFT, T_LABEL_BOTTOM), self.stack_names_font).draw(&mut self.display);
+        let _ = Text::new(":", Point::new(COLON_LEFT, T_LABEL_BOTTOM), self.stack_names_font).draw(&mut self.display);
+        let _ = Text::new(&t_buffer_str, Point::new(NUM_LEFT, T_NUM_BOTTOM), self.font).draw(&mut self.display);
+
+
+        self.display.flush().unwrap(); 
 
         
         let  (outstr, e_pos) = 
@@ -300,14 +334,7 @@ impl <'a> DisplayStruct <'a>{
 
     pub fn draw_one_line(&mut self, entry_line: Option<String<20>>, e_pos: Option<i32>, target: DisplayLine){ 
 
-        const NUMBER_BOTTOM: i32 = 62;
-        const LABEL_BOTTOM: i32 = 59;
-        const LINE_SPACING: i32 = 15;
-        const NAME_LEFT: i32 = 1;
-        const COLON_LEFT: i32 = 6;
-        const NUM_LEFT: i32 = 15; 
-        const NUM_WIDTH: i32 = 10;
-
+  
         let (letter, label_bottom, number_bottom)  = match target {
             DisplayLine::X => {("x", LABEL_BOTTOM, NUMBER_BOTTOM)},
             DisplayLine::Y => {("y", LABEL_BOTTOM - LINE_SPACING, NUMBER_BOTTOM - LINE_SPACING)},

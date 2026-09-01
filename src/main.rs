@@ -35,7 +35,7 @@ use embassy_rp::spi::{Blocking, Spi}; //, ClkPin, Config, MisoPin, MosiPin
 
 use embassy_sync::blocking_mutex::Mutex;
 use embassy_sync::blocking_mutex::raw::NoopRawMutex;
-// use embassy_time::Delay;
+use embassy_time::Delay;
 // use embassy_time::{Duration, Timer};
 
 // text};
@@ -49,7 +49,10 @@ use embassy_executor::Spawner;
 use embedded_graphics::mono_font::ascii::{FONT_7X13, FONT_10X20};//, FONT_9X18, FONT_9X18_BOLD};
 use embedded_graphics::mono_font::MonoTextStyle;
 use embedded_graphics::pixelcolor::BinaryColor;
+use embedded_graphics::{prelude::*};
+use embedded_graphics::text::Text;
 
+// use embedded_graphics::text::Text;
 use enum_dispatch;
 
 use heapless::String;
@@ -59,8 +62,8 @@ mod keyboard;
 use keyboard::Keyboard;
 
 
-mod led;
-use led::FlashLedStruct;
+// mod led;
+// use led::FlashLedStruct;
 
 mod line_edit;
 use line_edit::{LineEdit};
@@ -138,6 +141,23 @@ trait InputPins {
 //     Row7(R7),
 // }
 
+struct FlashLedStruct {
+    led: Output<'static>,
+    delay: u32,
+}
+
+impl FlashLedStruct {
+    fn new(led: Output<'static>, delay: u32) -> Self {
+        Self { led, delay }
+    }
+
+    fn flash(&mut self) {
+        self.led.set_high();
+        delay(self.delay);
+        self.led.set_low();
+        delay(self.delay);
+    }
+}
 
 
 #[embassy_executor::main]
@@ -147,20 +167,11 @@ async fn main (_spawner: Spawner) {
 
     info!("Started");
 
-    // let pico_led = p.PIN_25;//Output::new(p.PIN_25, Level::High);
-    // // let mut flash_led = FlashLedStruct::new(pico_led, 20_000_000);/
-    // let led = Output::new(p.PIN_19, Level::High);
-    // led.flash();
-
-
 // On the RP235X, GPIO25 is connected to the user LED. (Datasheet page 9/24, checked 31/8/2026)
 // https://pip-assets.raspberrypi.com/categories/1005-raspberry-pi-pico-2/documents/RP-008299-DS-3-pico-2-datasheet.pdf
-    let mut led = Output::new(p.PIN_25, Level::High);
-    let delay_t = 20_000_000;
-        led.set_high();
-        delay(delay_t);
-        led.set_low();
-        // delay(self.delay);
+    let pico_led = Output::new(p.PIN_25, Level::High);
+    let mut flash_led = FlashLedStruct::new(pico_led, 20_000_000);
+    flash_led.flash();
 
     
     let mosi = p.PIN_19;
@@ -179,34 +190,78 @@ async fn main (_spawner: Spawner) {
        info!("display interface created");
 
     let mut page_buffer = GraphicsPageBuffer::new();
-    let reset_pin = Output::new(reset, Level::Low);
-    // let stacknames_font = MonoTextStyle::new(&FONT_7X13, BinaryColor::On);
+    let mut reset_pin = Output::new(reset, Level::Low);
+    
+    let font = MonoTextStyle::new(&FONT_10X20, BinaryColor::On);
+    let stacknames_font = MonoTextStyle::new(&FONT_7X13, BinaryColor::On);
 
-    let display: ST7565<SPIInterface<embassy_embedded_hal::shared_bus::blocking::spi::SpiDeviceWithConfig<'_, NoopRawMutex, embassy_rp::spi::Spi<'_, SPI0, embassy_rp::spi::Blocking>, Output<'_>>, Output<'_>>, DOGL128_6, GraphicsMode<'_, 128, 8>, 128, 64, 8> = st7565::ST7565::new(display_interface, DOGL128_6)
-        .into_graphics_mode(&mut page_buffer);   
-        
     let mut stack = stack::Stack::new();
+    let display: ST7565<SPIInterface<embassy_embedded_hal::shared_bus::blocking::spi::SpiDeviceWithConfig<'_, NoopRawMutex, embassy_rp::spi::Spi<'_, SPI0, embassy_rp::spi::Blocking>, Output<'_>>, Output<'_>>, DOGL128_6, GraphicsMode<'_, 128, 8>, 128, 64, 8> = st7565::ST7565::new(display_interface, DOGL128_6)
+        .into_graphics_mode(&mut page_buffer);  
+    let e_font = MonoTextStyle::new(&FONT_7X13, BinaryColor::On);
+
+    let number_style =  DisplayStyle::E(4);
+
     let mut display: DisplayStruct =  DisplayStruct::new(
         display,
         reset_pin,
-        MonoTextStyle::new(&FONT_10X20, BinaryColor::On),       // Numbers
-        MonoTextStyle::new(&FONT_7X13, BinaryColor::On), // stack names
-        MonoTextStyle::new(&FONT_7X13, BinaryColor::On),        // E
-        DisplayStyle::E(4),
-        &mut stack,
-        // &mut stack::Stack::new(),
+        font,
+        stacknames_font,
+        e_font,
+        number_style,
     );
-    
-    display.set_on(true);
-    let _ = display.display.flush();
-    display.set_on(true);
 
-    let mut arb_line:String::<20> = String::new();
-    for c in "Some line".chars() {
-        let _= arb_line.push(c);
-    }
+// mut display: ST7565<SPIInterface<embassy_embedded_hal::shared_bus::blocking::spi::SpiDeviceWithConfig<'a, NoopRawMutex, embassy_rp::spi::Spi<'a, SPI0, embassy_rp::spi::Blocking>, Output<'a>>, Output<'a>>, DOGL128_6, GraphicsMode<'a, 128, 8>, 128, 64, 8>,
+//                 mut reset_pin: Output<'a>, 
+//                 font: MonoTextStyle<'a, BinaryColor>,
+//                 stack_names_font: MonoTextStyle<'a, BinaryColor>,
+//                 e_font: MonoTextStyle<'a, BinaryColor>,
+//                 // f_font: MonoTextStyle<'a, BinaryColor>,
+//                 number_style: DisplayStyle,
 
-    display.update_stack_display(Some(arb_line));
+
+
+
+
+    // display.reset(&mut reset_pin, &mut Delay).unwrap(); 
+
+    // &mut display.display.reset_pin, &mut Delay).unwrap();
+
+    // display.display.set_display_on(true);
+    // let _ = display.display.flush();
+    // display.display.set_display_on(true);
+    // // display.update_stack_display(S);
+
+let _ = Text::new("Hello world", Point::new(2, 2), font).draw(&mut display.display);
+        
+
+
+
+    // let mut number:String::<20> = String::new();
+    // for c in "Some line".chars() {
+    //     let _= number.push(c);
+    // }
+    // let num = num_to_string
+
+    // // display.update_stack_display(Some(arb_line));
+
+    // // self.
+    // display.clear(BinaryColor::Off);
+
+
+
+
+
+                      // This seems to work
+
+    info!("About to display test code");
+
+    // self.
+    display.display.flush().unwrap();
+let _ = Text::new("Hello world", Point::new(2, 2), font).draw(&mut display.display);
+
+
+    loop{};//*********************************************************************************
 
     // Keyboard pins
     // let rows: [AnyPin; 8] = [*p.PIN_2.into() , *p.PIN_3.into(), *p.PIN_4.into(), *p.PIN_5.into(), *p.PIN_6.into(), *p.PIN_7.into(), *p.PIN_8.into(), *p.PIN_9.into()];
@@ -247,11 +302,13 @@ async fn main (_spawner: Spawner) {
     loop{
         //100E6 is about once per second
         delay(10_000_000); 
+        info!("before kbd scan");
         let key = keyboard.scan();
         let k: Option<keyboard::KeyName> =  key.await;
         if k.is_none(){
             continue;
         } else {
+            
             let k = k.unwrap();
             info!("main: {} key pressed", k);         
             
@@ -286,10 +343,10 @@ async fn main (_spawner: Spawner) {
             // info!("Back in main loop");
 
             // number_edit
-            let number_str: String<20> = String::new();
+            // let number_str: String<20> = String::new();
             
 
-            display.update_stack_display(Some(number_str));
+            // display.update_stack_display(Some(number_str));
             // stack.swapxy();
             // stack.set_changed();                                            //
             //display.entry.editing = !display.entry.editing;
