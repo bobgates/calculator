@@ -21,19 +21,12 @@ use crate::keyboard::KeyName;
 
 const EDIT_LENGTH: usize = 22;      // Two spare characters if there are a couple of off by 1 errors!
 
-use crate::stack::Stack;
+// use crate::stack::Stack;
+
 
 use crate::State;
 use crate::State::{Calculating, Editing};//, Undefined};
 
-#[derive(Debug)]
-pub struct LineEdit{
-    // pub stack: &'a mut Stack,
-    pub state: State,
-    // pub previous_state: State, 
-    pub line: String<EDIT_LENGTH>,
-    // stack: crate::stack::Stack,
-}
 
 /*
     Every key press calls LineEdit process key
@@ -56,6 +49,14 @@ pub struct LineEdit{
 // impl <'a>LineEdit<'a>{//<'_>{
 //     pub fn new()->LineEdit<'a>{ //stack: &mut crate::stack::Stack)->LineEdit{
 
+#[derive(Debug)]
+pub struct LineEdit{
+    // pub stack: &'a mut Stack,
+    pub state: State,
+    // pub previous_state: State, 
+    pub line: String<EDIT_LENGTH>,
+    // stack: crate::stack::Stack,
+}
 
 impl LineEdit{//<'_>{
     pub fn new()->LineEdit{ //stack: &mut crate::stack::Stack)->LineEdit{

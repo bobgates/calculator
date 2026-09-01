@@ -75,7 +75,7 @@ pub enum DisplayLine{
 // #[derive(Clone)]
 pub struct DisplayStruct <'a>{
     pub display: ST7565<SPIInterface<embassy_embedded_hal::shared_bus::blocking::spi::SpiDeviceWithConfig<'a, NoopRawMutex, embassy_rp::spi::Spi<'a, SPI0, embassy_rp::spi::Blocking>, Output<'a>>, Output<'a>>, DOGL128_6, GraphicsMode<'a, 128, 8>, 128, 64, 8>,
-    // reset_pin: Output<'a>,
+    reset_pin: Output<'a>,
     font: MonoTextStyle<'a, BinaryColor>,
     stack_names_font: MonoTextStyle<'a, BinaryColor>,
     e_font: MonoTextStyle<'a, BinaryColor>,
@@ -113,7 +113,7 @@ impl <'a> DisplayStruct <'a>{
 
         Self { 
             display, 
-            // reset_pin,
+            reset_pin,
             font,
             stack_names_font,
             e_font,

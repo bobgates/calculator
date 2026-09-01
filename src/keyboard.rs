@@ -4,7 +4,7 @@ use embassy_time::Timer;
 use embassy_rp::{gpio::{Input, Output}};//, multicore::current_core};
 
 use enumset::{enum_set, EnumSet, EnumSetType};
-use crate::enum_dispatch;
+// use crate::enum_dispatch;   - used for dynamic dispatch of enums, but not needed here YET
 
 // use std::ops::{Index, IndexMut};
 
