@@ -27,7 +27,7 @@ use crate::State;
 use crate::State::{Calculating, Editing};//, Undefined};
 
 #[derive(Debug)]
-pub struct LineEdit<'a>{
+pub struct LineEdit{
     // pub stack: &'a mut Stack,
     pub state: State,
     // pub previous_state: State, 
@@ -53,10 +53,12 @@ pub struct LineEdit<'a>{
         - turn off ENTER_AND_EDIT_ENTRY_MODE
 */
 
+// impl <'a>LineEdit<'a>{//<'_>{
+//     pub fn new()->LineEdit<'a>{ //stack: &mut crate::stack::Stack)->LineEdit{
 
 
-impl <'a>LineEdit<'a>{//<'_>{
-    pub fn new()->LineEdit<'a>{ //stack: &mut crate::stack::Stack)->LineEdit{
+impl LineEdit{//<'_>{
+    pub fn new()->LineEdit{ //stack: &mut crate::stack::Stack)->LineEdit{
         let line = String::<EDIT_LENGTH>::new();
         let state = Calculating; 
         // let previous_state = Calculating;   
@@ -67,7 +69,7 @@ impl <'a>LineEdit<'a>{//<'_>{
         info!("process_calculate_key: {}", key);      
         match key{
             KeyName::Enter => {
-                self.stack.push_x();
+                // self.stack.push_x();
             },
             _ => {info!("\t\tI don't yet know how to process {}", key)}
         }  
@@ -196,7 +198,7 @@ impl <'a>LineEdit<'a>{//<'_>{
                     self.state = Editing;
                     info!("self.editing set to true!!!!!!!!");
                 } else {
-                    self.process_calculate_keys(key);
+                    self.process_calculate_key(key);
                 }
             }
         }

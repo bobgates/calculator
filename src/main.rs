@@ -233,7 +233,7 @@ async fn main (_spawner: Spawner) {
     let cols = [col1, col2, col3, col4, col5, col6];
 
     let mut keyboard = Keyboard::new(rows, cols);
-    let mut line_edit = LineEdit::new(display.stack);
+    let mut line_edit = LineEdit::new();
 
 // New ideaa (31/8/2026)
 // Stack lives in main

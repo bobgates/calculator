@@ -70,7 +70,7 @@ pub struct DisplayStruct <'a>{
     pub  stack: &'a mut stack::Stack,
     number_style: DisplayStyle,
     eline : Option<String<20>>,
-    pub _entry: &'a LineEdit<'a>,
+    // pub _entry: &'a LineEdit<'a>,
 }
 
 impl <'a> DisplayStruct <'a>{
@@ -95,7 +95,7 @@ impl <'a> DisplayStruct <'a>{
             stack: stack, //Stack::new(),    // No - you were just handed a stack!
             number_style,
             eline: None,
-            _entry: & LineEdit::new(stack),
+            // _entry: & LineEdit::new(),
         }
     }
 
