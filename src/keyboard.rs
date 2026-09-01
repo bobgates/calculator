@@ -1,4 +1,5 @@
 use defmt::Format;//{info, /*error, info, println, warn,*/ Format};
+use defmt::info;
 
 use embassy_time::Timer;
 use embassy_rp::{gpio::{Input, Output}};//, multicore::current_core};
@@ -109,6 +110,9 @@ pub struct Keyboard{
 
 impl Keyboard {
     pub fn new( row_pins: [Input<'static>; 8], col_pins: [Output<'static>; 6], ) -> Self {
+        
+        
+        
         Self {
             rows: row_pins,
             cols: col_pins,
@@ -134,6 +138,7 @@ impl Keyboard {
     // Scans the hardware and returns a key, mapped as defined above
     // if one has been pressed, else None
     pub async fn scan(&mut self) ->  Option<KeyName> {//Option<u8> {
+// info!("In kbd scan");
 
         let mut down_count = 0;
         let mut n_row = 0;
@@ -143,6 +148,7 @@ impl Keyboard {
             Timer:: after_millis(3).await;   
 
             col.set_high();
+// info!("Col {} set high", nc);
             for (nr, row) in self.rows.iter().enumerate()  {
                     if row.is_high() {
                     down_count += 1;
@@ -153,6 +159,8 @@ impl Keyboard {
                 }        
             }
             col.set_low();
+// info!("Col {} set low", nc);
+
         }
         if down_count == 0 {
             self.current_key = None;
@@ -160,7 +168,7 @@ impl Keyboard {
         }
 
         if down_count == 1 {                            // Only one key is pressed, so we can identify it
-            // info!("Key {:?} pressed", ROW_COL_MAP[n_row][n_col]);
+info!("Key {:?} pressed", ROW_COL_MAP[n_row][n_col]);
             let key = Some( ROW_COL_MAP[n_row][n_col]);
             if self.current_key == key {
                     return None;        // Need to unpress key before pressing again to get two keys

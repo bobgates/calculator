@@ -106,10 +106,12 @@ impl <'a> DisplayStruct <'a>{
         //     let _ = Text::new("E", Point::new(NUM_LEFT + NUM_WIDTH * e_pos.unwrap() + 2, number_bottom-2), self.e_font).draw(&mut self.display);
         // }
 
-        info!("In hello world display");
+info!("In display after reset");
 
         display.flush().unwrap();       // Flushes internal buffer to the display
 
+
+        // loop{};
 
         Self { 
             display, 
@@ -132,6 +134,7 @@ impl <'a> DisplayStruct <'a>{
    // and returns the position of the 'E' if it is present
 
     pub fn num_to_string(&mut self, number: f64 )->(String<20>, Option<i32>){
+        // info!("num_to_string: number = {}", number);
         if number == 0.0 {
             let mut output: String<20>=format!("").unwrap();
             let _ = output.push('0');
@@ -251,7 +254,7 @@ impl <'a> DisplayStruct <'a>{
         self.display.clear(BinaryColor::Off);
 
         // let (x, y, z, t) = self.stack.fetch_values();                   // This seems to work
-        let x:f64=0.0; let y:f64=0.0; let z:f64=0.0; let t:f64=0.0;
+        let x:f64=1.2; let y:f64=3.4; let z:f64=5.6; let t:f64=7.8;
         info!("In display.update_stack_display - x: {}, y: {}, z: {}, t: {}", x, y, z, t);
 
         let mut outstr: String<20>=String::new();
@@ -288,7 +291,7 @@ impl <'a> DisplayStruct <'a>{
                         }
                         outstr.push('E').unwrap(); // don't forget to return the E!
                     } else {
-                        info!("--- Not processed: key is {}", c);
+                        info!("--- Not processed in entry_line: key is {}", c);
                         outstr.push(c).unwrap();  
                     }  
                 }

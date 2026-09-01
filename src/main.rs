@@ -21,7 +21,7 @@ use embassy_embedded_hal::shared_bus::blocking::spi::SpiDeviceWithConfig;
 // use embassy_embedded_hal::shared_bus::SpiDeviceError;
 
 use embassy_rp::gpio::{Level, Output};
-// use embassy_rp::gpio::{Input, Level, Pull};
+use embassy_rp::gpio::{Input, Pull};
 use embassy_rp::peripherals::{SPI0};
 // use embassy_rp::{Peri, PeripheralType};
 use embassy_rp::rom_data;
@@ -45,13 +45,20 @@ use embassy_executor::Spawner;
 use embedded_graphics::mono_font::ascii::{FONT_7X13, FONT_10X20, FONT_9X18, FONT_9X18_BOLD};
 use embedded_graphics::mono_font::MonoTextStyle;
 use embedded_graphics::pixelcolor::BinaryColor;
+use embedded_graphics::text::{Text, TextStyle};
+use embedded_graphics::prelude::*;
 
 use heapless::string::StringInner;
+use heapless::{String, format};
 
 mod keyboard;
+use keyboard::Keyboard;
+// use keyboard::keyboard;
 // use rp235x_hal as hal;
 mod line_edit;
-
+// use line_edit::LineEdit;
+use line_edit::LineEdit;
+// 
 use st7565::{GraphicsPageBuffer};
 use st7565::displays::DOGL128_6;
 use st7565::ST7565;
@@ -106,8 +113,7 @@ impl FlashLedStruct {
 async fn main (_spawner: Spawner) {
     let p = embassy_rp::init(Default::default());
 
-    info!("Started");
-
+info!("Started");
 
     let pico_led = Output::new(p.PIN_25, Level::High);
     let mut flash_led = FlashLedStruct::new(pico_led, 20_000_000);
@@ -128,7 +134,7 @@ async fn main (_spawner: Spawner) {
     let display_spi=SpiDeviceWithConfig::new(&spi_bus, Output::new(display_cs, Level::High), display_config);
     let display_interface: SPIInterface<SpiDeviceWithConfig<'_, NoopRawMutex, Spi<'_, SPI0, Blocking>, Output<'_>>, Output<'_>> = SPIInterface::new(display_spi, a0);
 
-       info!("display interface created");
+
 
     let mut page_buffer = GraphicsPageBuffer::new();
     let reset_pin = Output::new(reset, Level::Low);
@@ -139,6 +145,10 @@ async fn main (_spawner: Spawner) {
 
     let display: ST7565<SPIInterface<embassy_embedded_hal::shared_bus::blocking::spi::SpiDeviceWithConfig<'_, NoopRawMutex, embassy_rp::spi::Spi<'_, SPI0, embassy_rp::spi::Blocking>, Output<'_>>, Output<'_>>, DOGL128_6, GraphicsMode<'_, 128, 8>, 128, 64, 8> = st7565::ST7565::new(display_interface, DOGL128_6)
         .into_graphics_mode(&mut page_buffer);   
+info!("display hardware initialised");
+
+
+
     
     let font = MonoTextStyle::new(&FONT_10X20, BinaryColor::On);
     let stacknames_font = MonoTextStyle::new(&FONT_7X13, BinaryColor::On);
@@ -156,6 +166,7 @@ async fn main (_spawner: Spawner) {
         e_font, //: MonoTextStyle<'a, BinaryColor>,
         number_style,//: DisplayStyle,
     );
+info!("display interface instantiated");
 
     display.set_on(true);
 
@@ -165,10 +176,75 @@ async fn main (_spawner: Spawner) {
 
     display.update_stack_display(None);
 
-    //     let num_str: String<20> =  format!("{}", num).unwrap();//Format!("{}".num);
-    //     let _ =Text::new(&num_str, Point::new(0, 13), font)
-    //             .draw(&mut display);
- 
+    let mut keyboard = Keyboard::new(
+        [
+            Input::new(p.PIN_2, Pull::Down),
+            Input::new(p.PIN_3, Pull::Down),
+            Input::new(p.PIN_4, Pull::Down),
+            Input::new(p.PIN_5, Pull::Down),
+            Input::new(p.PIN_6, Pull::Down),
+            Input::new(p.PIN_7, Pull::Down),
+            Input::new(p.PIN_8, Pull::Down),
+            Input::new(p.PIN_9, Pull::Down),
+        ],
+        [
+            Output::new(p.PIN_10, Level::Low),
+            Output::new(p.PIN_11, Level::Low),
+            Output::new(p.PIN_12, Level::Low),
+            Output::new(p.PIN_13, Level::Low),
+            Output::new(p.PIN_14, Level::Low),
+            Output::new(p.PIN_15, Level::Low),
+        ],
+    );
+
+    let mut line_edit = LineEdit::new();
+
+
+        // let num_str: String<20> =  format!("{}", num).unwrap();//Format!("{}".num);
+        // let _ =Text::new(&num_str, Point::new(0, 13), font)
+        //         .draw(&mut display);
+     loop{
+        //100E6 is about once per second
+        delay(10_000_000); 
+        let key = keyboard.scan();
+        let k: Option<keyboard::KeyName> =  key.await;
+        if k.is_none(){
+            continue;
+        } else {
+            let k = k.unwrap();
+            info!("main: {} key pressed", k);         
+            // let (result, editing) =
+             line_edit.process_key(k);      
+// Okay, now figure out how to carry on with the outputs from process_key()
+            // if let Some(number) = result {
+            //     info!("Some result in main: {}", &result.unwrap());
+            //     display.push_stack(number);
+            //     display.update_stack_display(None);
+            // } else {
+            //     info!("No result in main around line 200");
+            // }
+
+            // info!("Back in main loop");
+
+            // number_edit
+            let number_str: String<20> = String::new();
+            
+
+            display.update_stack_display(Some(number_str));
+            // stack.swapxy();
+            // stack.set_changed();                                            //
+            //display.entry.editing = !display.entry.editing;
+            // info!("Editing in main around line 226: {}\n\n", display.entry.editing);
+                //100E6 is about once per second
+        }
+    }
+
+
+
+
+
+
+
     loop{
         // info!("In loop");
         display.update_stack_display(None); 
