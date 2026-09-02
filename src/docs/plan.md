@@ -15,7 +15,7 @@ It then goes into a loop, forever:
 Line edit only contains:
 
 - a mutable reference to the stack
-- an enum called State that knows what state the system is in: Editing or Calculating at the moment - others may be added.
+- an enum called State that knows what state the system is in: Entry or Calculating at the moment - others may be added.
 - editing: bool
 - line: String<EDIT_LENGTH>
 

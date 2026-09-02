@@ -25,9 +25,7 @@ const EDIT_LENGTH: usize = 22;      // Two spare characters if there are a coupl
 
 
 use crate::State;
-use crate::State::{Calculating, Editing};//, Undefined};
-
-
+use crate::State::{Calculating, Entry};
 /*
     Every key press calls LineEdit process key
     LineEdit has two working states: editing or not editing.
@@ -82,11 +80,10 @@ impl LineEdit{//<'_>{
         match key{
             KeyName::Enter => {
                 match self.state {
-                    Editing => {
+                    Entry => {
                         for c in self.line.chars() {
                             info!("     pnk: in Enter: line char: {}", c);
                         }
-
                         let result = self.line.parse::<f64>();
                         if result.is_ok() {
                             let a = result.unwrap();
@@ -113,7 +110,7 @@ impl LineEdit{//<'_>{
                 }
             },                          //----------------------------**************************************** WORK HERE
             KeyName::Back => 
-                if self.line.len()>1 && self.state == Editing{
+                if self.line.len()>1 && self.state == Entry {
                     info!("popping a character from the line");
                     self.line.pop();
                 } else {                                                        // !todo else..
@@ -182,23 +179,26 @@ impl LineEdit{//<'_>{
     }
 
 
-    // Eats the current key and routes it to numbers or calcs
+    // Eats the current key and routes it to the appropriate state
     pub fn process_key(&mut self, key: KeyName) { //-> (Option<f64>, State) {
         match self.state {
-            Editing => {
-                if Self::works_in_entry_mode(key){
+            Entry => {
+                if WORK_IN_ENTRY_MODE.contains(key) | ENTER_AND_EDIT_ENTRY_MODE.contains(key){
                     self.process_number_keys(key);
+                    info!("In entry, process_key: {}", key);
                 } else {
                     self.state = Calculating;
-                    info!("set self.state to calculating");
+                    info!("In entry, setting self.state to calculating for: {}", key);
                     self.process_calculate_key(key);
                 }
             },
             Calculating => {
-                if Self::enters_entry_mode(key){
-                    self.state = Editing;
-                    info!("self.editing set to true!!!!!!!!");
+                if ENTER_AND_EDIT_ENTRY_MODE.contains(key){
+                    self.state = Entry;
+                    self.process_number_keys(key);
+                    info!("In calculating, setting self.state to entry for: {}", key);
                 } else {
+                    info!("In calculating, process_key: {}", key);
                     self.process_calculate_key(key);
                 }
             }
@@ -208,7 +208,7 @@ impl LineEdit{//<'_>{
     // Takes a key name and responds it that
     // key can work in entry mode: numbers, PLUSMINUS, etc
     pub fn works_in_entry_mode(key: KeyName)->bool{
-        WORK_IN_ENTRY_MODE.contains(key)        
+        WORK_IN_ENTRY_MODE.contains(key) | ENTER_AND_EDIT_ENTRY_MODE.contains(key)    
     }
 
     // Any key that triggers a change in mode to 

@@ -87,7 +87,7 @@ pub static PICOTOOL_ENTRIES: [embassy_rp::binary_info::EntryAddr; 4] = [
 #[derive(Clone, Debug, Copy, PartialEq)]
 pub enum State {
     // Undefined,
-    Editing,
+    Entry,
     Calculating,
 }
 struct FlashLedStruct {
@@ -151,7 +151,7 @@ info!("Started");
     //let eline: Option<heapless::String<20>> = None;
 
 
-    let number_style =  DisplayStyle::E(4);
+    let number_style =  DisplayStyle::E(5);
 
     let mut display = DisplayStruct::new(
         display, //: ST7565<SPIInterface<embassy_embedded_hal::shared_bus::blocking::spi::SpiDeviceWithConfig<'a, NoopRawMutex, embassy_rp::spi::Spi<'a, SPI0, embassy_rp::spi::Blocking>, Output<'a>>, Output<'a>>, DOGL128_6, GraphicsMode<'a, 128, 8>, 128, 64, 8>,
@@ -164,10 +164,6 @@ info!("Started");
     // };
 info!("display interface instantiated");
 
-    display.set_on(true);
-
-    // display.display.reset(&mut reset, &mut Delay).unwrap();
-    let _ = display.display.flush();
     display.set_on(true);
 
     display.update_stack_display(None);
@@ -193,7 +189,7 @@ info!("display interface instantiated");
         ],
     );
 
-let mut stack = stack::Stack::new();
+    let mut stack = stack::Stack::new();
 
     let mut line_edit = LineEdit::new();
 
@@ -212,6 +208,10 @@ let mut stack = stack::Stack::new();
             let k = k.unwrap();
             info!("main: {} key pressed", k);         
             // let (result, editing) =
+
+
+
+            
              line_edit.process_key(k);      
 // Okay, now figure out how to carry on with the outputs from process_key()
             // if let Some(number) = result {
@@ -243,12 +243,12 @@ let mut stack = stack::Stack::new();
 
 
 
-    loop{
-        // info!("In loop");
-        display.update_stack_display(None); 
-        stack._swapxy();
-        stack._changed();
-        delay(100_000_000);
-    }
+    // loop{
+    //     // info!("In loop");
+    //     display.update_stack_display(None); 
+    //     stack._swapxy();
+    //     stack._changed();
+    //     delay(100_000_000);
+    // }
 
 }

@@ -228,13 +228,10 @@ info!("In display after reset");
     }
     
 
-//todo!("check if set_on needs to be called twice");
     pub fn set_on(&mut self, on: bool) {
-        // info!("switch display on");
-        self.display.set_display_on(on).unwrap();
 
         let _ = self.display.flush();
-        self.display.set_display_on(true).unwrap();
+        self.display.set_display_on(on).unwrap();
 
         let num_str: String<20> =  format!("{}", "Screen on").unwrap();//Format!("{}".num);
         let _ =Text::new(&num_str, Point::new(0, 13), self.font).draw(&mut self.display);
@@ -329,7 +326,6 @@ info!("In display after reset");
   
 
     pub fn draw_one_line(&mut self, entry_line: Option<String<20>>, e_pos: Option<i32>, target: DisplayLine){ 
-
   
         let (letter, label_bottom, number_bottom)  = match target {
             DisplayLine::X => {("x", LABEL_BOTTOM, NUMBER_BOTTOM)},
