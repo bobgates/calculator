@@ -247,7 +247,7 @@ info!("In display after reset");
         self.display.clear(BinaryColor::Off);
 
         // let (x, y, z, t) = self.stack.fetch_values();                   // This seems to work
-        let x:f64=1.2; let y:f64=3.4; let z:f64=5.6; let t:f64=7.8;
+        let x:f64=1.234567; let y:f64=23.456799; let z:f64=567.8901; let t:f64=7896.1234;
         info!("In display.update_stack_display - x: {}, y: {}, z: {}, t: {}", x, y, z, t);
 
         let mut outstr: String<20>=String::new();
