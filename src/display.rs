@@ -3,7 +3,7 @@
 use defmt::info;
 use core::f64;//, todo};
 use core::fmt::Write;
-use core::mem::MaybeUninit;
+// use core::mem::MaybeUninit;
 // use core::num;
 use display_interface_spi::SPIInterface;
 
@@ -14,18 +14,18 @@ use embassy_time::Delay;
 
 
 // use embedded_graphics::primitives::{Circle, PrimitiveStyle, Rectangle};
-use embedded_graphics::mono_font::ascii::{FONT_7X13, FONT_10X20, FONT_9X18, FONT_9X18_BOLD};
+// use embedded_graphics::mono_font::ascii::{FONT_7X13, FONT_10X20, FONT_6X10, FONT_9X18, FONT_9X18_BOLD};
 use embedded_graphics::mono_font::MonoTextStyle;
 use embedded_graphics::pixelcolor::BinaryColor;
 use embedded_graphics::{prelude::*};
 use embedded_graphics::text::Text;
 
 use heapless::{format, String};
-use heapless::string::StringInner;
+// use heapless::string::StringInner;
 // use heapless::pool::boxed::Box;
 // use heapless::vec::VecStorageInner;   
-use crate::line_edit::{LineEdit, EDIT_LENGTH};
-use crate::stack::Stack;
+use crate::line_edit::{EDIT_LENGTH};//LineEdit
+// use crate::stack::Stack;
 
 
 use st7565::displays::DOGL128_6;
@@ -33,16 +33,17 @@ pub use st7565::ST7565;
 use st7565::modes::GraphicsMode;
 
 use crate::stack;
+use crate::State::Calculating;
 use num_traits::float::FloatCore;
 
 const NUMBER_BOTTOM: i32 = 62;
-const LABEL_BOTTOM: i32 = 59;
+const LABEL_BOTTOM: i32 = 61;
 const LINE_SPACING: i32 = 15;
 const NAME_LEFT: i32 = 1;
 const COLON_LEFT: i32 = 6;
 const NUM_LEFT: i32 = 15; 
-const NUM_WIDTH: i32 = 10;
-const X_LABEL_BOTTOM: i32 = 59;
+const NUM_WIDTH: i32 = 9;       // 9 for 9x18 font
+const X_LABEL_BOTTOM: i32 = LABEL_BOTTOM;
 const Y_LABEL_BOTTOM: i32 = X_LABEL_BOTTOM - LINE_SPACING;
 const Z_LABEL_BOTTOM: i32 = X_LABEL_BOTTOM - 2*LINE_SPACING;
 const T_LABEL_BOTTOM: i32 = X_LABEL_BOTTOM - 3*LINE_SPACING;
@@ -80,10 +81,10 @@ pub struct DisplayStruct <'a>{
     font: MonoTextStyle<'a, BinaryColor>,
     stack_names_font: MonoTextStyle<'a, BinaryColor>,
     e_font: MonoTextStyle<'a, BinaryColor>,
-    // f_font: MonoTextStyle<'a, BinaryColor>,
-    // pub  stack: &'a mut stack::Stack,
     number_style: DisplayStyle,
     eline : Option<String<EDIT_LENGTH>>,
+    state: crate::State,
+    stack: &'a stack::Stack,
     // pub _entry: &'a LineEdit<'a>,
 }
 
@@ -95,7 +96,7 @@ impl <'a> DisplayStruct <'a>{
                 e_font: MonoTextStyle<'a, BinaryColor>,
                 // f_font: MonoTextStyle<'a, BinaryColor>,
                 number_style: DisplayStyle,
-                // stack: &'a mut Stack,
+                stack_ref: &'a stack::Stack,
             ) -> Self {
         
         display.reset(&mut reset_pin, &mut Delay).unwrap();
@@ -119,19 +120,17 @@ info!("In display after reset");
             e_font,
             number_style,
             eline: None,
+            state: Calculating,
+            stack: stack_ref,
         }
     }
-
-    // pub fn push_stack(&mut self, value: f64) {
-    //     self.stack.push(value);
-    // }
 
    // Converts an f64 into a string with the correct number of significant figures, 
    // and returns the position of the 'E' if it is present
 
-    pub fn num_to_string(&mut self, number: f64 )->(String<EDIT_LENGTH>, Option<i32>){
+    pub fn num_to_string(&mut self, number: &f64 )->(String<EDIT_LENGTH>, Option<i32>){
         // info!("num_to_string: number = {}", number);
-        if number == 0.0 {
+        if *number == 0.0 {
             let mut output: String<EDIT_LENGTH>=format!("").unwrap();
             let _ = output.push('0');
             let _ = output.push('.');
@@ -153,7 +152,7 @@ info!("In display after reset");
             match self.number_style {
                 DisplayStyle::E(sf) => {
 
-                    let exponent: i32 = 1 + libm::log10(number).floor() as i32;
+                    let exponent: i32 = 1 + libm::log10(*number).floor() as i32;
 
                     let mut before_dp = exponent % 3;  // This gives everything powers for 10^3, 10^-3, etc
 
@@ -163,7 +162,7 @@ info!("In display after reset");
                     };
                     let exp = exponent - before_dp;
 
-                    let n = (number/(10.0_f64).powi(exponent-sf)).trunc()/10_f64.powi(sf-before_dp);
+                    let n = (*number/(10.0_f64).powi(exponent-sf)).trunc()/10_f64.powi(sf-before_dp);
                     // 1. the cutting off of the number to the correct number of significant figures
                     // Leaves exp
                     // if exp == 0
@@ -244,15 +243,14 @@ info!("In display after reset");
     pub fn update_stack_display(&mut self, entry_line: Option<String<EDIT_LENGTH>>) {
         self.display.clear(BinaryColor::Off);
 
-        // let (x, y, z, t) = self.stack.fetch_values();                   // This seems to work
-        let x:f64=1.234567; let y:f64=23.456799; let z:f64=567.8901; let t:f64=7896.1234;
+        let (x, y, z, t) = self.stack.get();                   // This seems to work
         info!("In display.update_stack_display - x: {}, y: {}, z: {}, t: {}", x, y, z, t);
 
         let mut outstr: String<EDIT_LENGTH>=String::new();
         let mut e_pos: Option<i32> = None;
         // let mut line : Option<String<EDIT_LENGTH>> = None;
 
-        let (t_buffer_str, _) = self.num_to_string(t);
+        let (t_buffer_str, _) = self.num_to_string(&t);
         let _= Text::new("t", Point::new(NAME_LEFT, T_LABEL_BOTTOM), self.stack_names_font).draw(&mut self.display);
         let _ = Text::new(":", Point::new(COLON_LEFT, T_LABEL_BOTTOM), self.stack_names_font).draw(&mut self.display);
         let _ = Text::new(&t_buffer_str, Point::new(NUM_LEFT, T_NUM_BOTTOM), self.font).draw(&mut self.display);
@@ -264,7 +262,7 @@ info!("In display after reset");
         let  (outstr, e_pos) = 
             if entry_line.is_none(){
                 info!("No entry line, so display x: {}", x);
-                self.num_to_string(x)
+                self.num_to_string(&x)
             } else {
                 for (l, c) in entry_line.unwrap().chars().enumerate(){
                     if c == '.' {
@@ -294,9 +292,9 @@ info!("In display after reset");
             }; 
     
 
-        let (y_buffer_str, ye_pos) = self.num_to_string(y);
-        let (z_buffer_str, ze_pos) = self.num_to_string(z);
-        let (t_buffer_str, te_pos) = self.num_to_string(t);
+        let (y_buffer_str, ye_pos) = self.num_to_string(&y);
+        let (z_buffer_str, ze_pos) = self.num_to_string(&z);
+        let (t_buffer_str, te_pos) = self.num_to_string(&t);
 
         self.draw_one_line(Some(outstr.clone()), e_pos, DisplayLine::X);
         self.draw_one_line(Some(y_buffer_str), ye_pos, DisplayLine::Y);
@@ -351,7 +349,7 @@ info!("In display after reset");
         let _ = Text::new(":", Point::new(COLON_LEFT, label_bottom), self.stack_names_font).draw(&mut self.display);
         let _ = Text::new(&line, Point::new(NUM_LEFT, number_bottom), self.font).draw(&mut self.display);
         if e_pos.is_some() {
-            let _ = Text::new("E", Point::new(NUM_LEFT + NUM_WIDTH * e_pos.unwrap() + 2, number_bottom-2), self.e_font).draw(&mut self.display);
+            let _ = Text::new("E", Point::new(NUM_LEFT + NUM_WIDTH * e_pos.unwrap() + 3, number_bottom-2), self.e_font).draw(&mut self.display);
         }
         // Put back the e
         Self::replace_letter(Some(line), ' ', 'E');

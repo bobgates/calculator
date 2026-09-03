@@ -14,7 +14,7 @@ use heapless::String;
 
 
 // use crate::keyboard::Keyboard;
-use crate::keyboard::{ENTER_AND_EDIT_ENTRY_MODE, WORK_IN_ENTRY_MODE};
+// use crate::keyboard::{ENTER_AND_EDIT_ENTRY_MODE, WORK_IN_ENTRY_MODE};
 use crate::keyboard::KeyName;
 
 
@@ -23,8 +23,8 @@ pub const EDIT_LENGTH: usize = 22;      // Two spare characters if there are a c
 // use crate::stack::Stack;
 
 
-use crate::State;
-use crate::State::{Calculating, Entry};
+// use crate::State;
+// use crate::State::{Calculating, Entry};
 /*
     Every key press calls LineEdit process key
     LineEdit has two working states: editing or not editing.
@@ -43,24 +43,17 @@ use crate::State::{Calculating, Entry};
         - turn off ENTER_AND_EDIT_ENTRY_MODE
 */
 
-// impl <'a>LineEdit<'a>{//<'_>{
-//     pub fn new()->LineEdit<'a>{ //stack: &mut crate::stack::Stack)->LineEdit{
-
 #[derive(Debug)]
-pub struct LineEdit{
-    // pub stack: &'a mut Stack,
-    pub state: State,
-    // pub previous_state: State, 
-    pub line: String<EDIT_LENGTH>,
-    // stack: crate::stack::Stack,
+pub struct LineEdit{ 
+    pub line: String<EDIT_LENGTH>
 }
 
 impl LineEdit{//<'_>{
-    pub fn new()->LineEdit{ //stack: &mut crate::stack::Stack)->LineEdit{
+    pub fn new()->LineEdit{ 
         let line = String::<EDIT_LENGTH>::new();
-        let state = Calculating; 
+        // let state = Calculating; 
         // let previous_state = Calculating;   
-        LineEdit {  state, line}
+        LineEdit {  /*state,*/ line}
     }
 
     pub fn process_calculate_key(&mut self, key: KeyName){
@@ -172,50 +165,6 @@ impl LineEdit{//<'_>{
     }
 
 
-    // Eats the current key and routes it to the appropriate state
-    // pub fn process_key(&mut self, key: KeyName) { //-> (Option<f64>, State) {
-    //     match self.state {
-    //         Entry => {
-    //             if WORK_IN_ENTRY_MODE.contains(key) | ENTER_AND_EDIT_ENTRY_MODE.contains(key){
-    //                 self.process_number_keys(key);
-    //                 info!("In entry, process_key: {}", key);
-    //             } else {
-    //                 self.state = Calculating;
-    //                 info!("In entry, setting self.state to calculating for: {}", key);
-    //                 self.process_calculate_key(key);
-    //             }
-    //         },
-    //         Calculating => {
-    //             if ENTER_AND_EDIT_ENTRY_MODE.contains(key){
-    //                 self.state = Entry;
-    //                 self.process_number_keys(key);
-    //                 info!("In calculating, setting self.state to entry for: {}", key);
-    //             } else {
-    //                 info!("In calculating, process_key: {}", key);
-    //                 self.process_calculate_key(key);
-    //             }
-    //         }
-    //     }
-    // }
-
-    // Takes a key name and responds if that
-    // key can work in entry mode: numbers, PLUSMINUS, etc
-    pub fn works_in_entry_mode(key: KeyName)->bool{
-        WORK_IN_ENTRY_MODE.contains(key) | ENTER_AND_EDIT_ENTRY_MODE.contains(key)    
-    }
-
-    // Any key that triggers a change in mode to 
-    // entry. Does not include eg: PLUS_MINUS
-    // because that works in entry mode but
-    // works different in calculating mode
-    // On entry mode, put cursor in line
-    pub fn enters_entry_mode(key: KeyName)->bool{
-        ENTER_AND_EDIT_ENTRY_MODE.contains(key)
-    }
-
-    // pub fn get_number(&self) -> String<22> {
-    //     self.line.clone()
-    // }
 }
     
 
