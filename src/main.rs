@@ -1,6 +1,9 @@
 #![no_std]
 #![no_main]
 
+mod calculate;
+use calculate::Calculate;   
+
 use core::{cell::RefCell, fmt::Display};
 use core::mem::MaybeUninit;
 
@@ -24,7 +27,7 @@ use embassy_rp::gpio::{Level, Output};
 use embassy_rp::gpio::{Input, Pull};
 use embassy_rp::peripherals::{SPI0};
 // use embassy_rp::{Peri, PeripheralType};
-use embassy_rp::rom_data;
+use embassy_rp::rom_data::{self, flash_reset_address_trans};
 use embassy_rp::spi;
 use embassy_rp::spi::{Blocking, ClkPin, Config, MisoPin, MosiPin, Spi};
 
@@ -48,25 +51,25 @@ use embedded_graphics::pixelcolor::BinaryColor;
 use embedded_graphics::text::{Text, TextStyle};
 use embedded_graphics::prelude::*;
 
+mod flash_led;
+use flash_led::FlashLed;
+
 use heapless::string::StringInner;
 use heapless::{String, format};
 
 mod keyboard;
-use keyboard::Keyboard;
-// use keyboard::keyboard;
-// use rp235x_hal as hal;
+use keyboard::{Keyboard, KeyName};
+use keyboard::{ENTER_AND_EDIT_ENTRY_MODE, WORK_IN_ENTRY_MODE};
+
 mod line_edit;
-// use line_edit::LineEdit;
-use line_edit::LineEdit;
-// 
+use line_edit::{LineEdit, EDIT_LENGTH};
+
 use st7565::{GraphicsPageBuffer};
 use st7565::displays::DOGL128_6;
 use st7565::ST7565;
 use st7565::modes::GraphicsMode;
 
 mod stack;
-
-
 
 // use defmt::{Format};
 use {defmt_rtt as _, panic_probe as _};
@@ -86,26 +89,8 @@ pub static PICOTOOL_ENTRIES: [embassy_rp::binary_info::EntryAddr; 4] = [
 
 #[derive(Clone, Debug, Copy, PartialEq)]
 pub enum State {
-    // Undefined,
     Entry,
     Calculating,
-}
-struct FlashLedStruct {
-    led: Output<'static>,
-    delay: u32,
-}
-
-impl FlashLedStruct {
-    fn new(led: Output<'static>, delay: u32) -> Self {
-        Self { led, delay }
-    }
-
-    fn flash(&mut self) {
-        self.led.set_high();
-        delay(self.delay);
-        self.led.set_low();
-        delay(self.delay);
-    }
 }
 
 
@@ -114,9 +99,9 @@ async fn main (_spawner: Spawner) {
     let p = embassy_rp::init(Default::default());
 
 info!("Started");
-
+    // Give a quick flash on the RP2350 LED to show that the device is alive.
     let pico_led = Output::new(p.PIN_25, Level::High);
-    let mut flash_led = FlashLedStruct::new(pico_led, 20_000_000);
+    let mut flash_led = FlashLed::new(pico_led, 20_000_000);
     flash_led.flash();
 
     let mosi = p.PIN_19;
@@ -133,23 +118,13 @@ info!("Started");
     let spi_bus: Mutex<NoopRawMutex, _> = Mutex::new(RefCell::new(spi));
     let display_spi=SpiDeviceWithConfig::new(&spi_bus, Output::new(display_cs, Level::High), display_config);
     let display_interface: SPIInterface<SpiDeviceWithConfig<'_, NoopRawMutex, Spi<'_, SPI0, Blocking>, Output<'_>>, Output<'_>> = SPIInterface::new(display_spi, a0);
-
-
-
     let mut page_buffer = GraphicsPageBuffer::new();
-    
-    
-
     let display: ST7565<SPIInterface<embassy_embedded_hal::shared_bus::blocking::spi::SpiDeviceWithConfig<'_, NoopRawMutex, embassy_rp::spi::Spi<'_, SPI0, embassy_rp::spi::Blocking>, Output<'_>>, Output<'_>>, DOGL128_6, GraphicsMode<'_, 128, 8>, 128, 64, 8> = st7565::ST7565::new(display_interface, DOGL128_6)
-        .into_graphics_mode(&mut page_buffer);   
-// info!("display hardware initialised");
-    
+        .into_graphics_mode(&mut page_buffer);       
     let reset_pin = Output::new(reset, Level::Low);
     let font = MonoTextStyle::new(&FONT_10X20, BinaryColor::On);
     let stacknames_font = MonoTextStyle::new(&FONT_7X13, BinaryColor::On);
     let e_font = MonoTextStyle::new(&FONT_7X13, BinaryColor::On);
-    //let eline: Option<heapless::String<20>> = None;
-
 
     let number_style =  DisplayStyle::E(5);
 
@@ -161,7 +136,6 @@ info!("Started");
         e_font, //: MonoTextStyle<'a, BinaryColor>,
         number_style
     );
-    // };
 info!("display interface instantiated");
 
     display.set_on(true);
@@ -190,45 +164,61 @@ info!("display interface instantiated");
     );
 
     let mut stack = stack::Stack::new();
+    let mut state = State::Calculating;
 
     let mut line_edit = LineEdit::new();
 
-
-        // let num_str: String<20> =  format!("{}", num).unwrap();//Format!("{}".num);
-        // let _ =Text::new(&num_str, Point::new(0, 13), font)
-        //         .draw(&mut display);
-     loop{
+// ******************************************************************************************** //
+    let mut entry_line: Option<String<EDIT_LENGTH>> = Some(String::new());
+    loop{
         //100E6 is about once per second
         delay(10_000_000); 
         let key = keyboard.scan();
-        let k: Option<keyboard::KeyName> =  key.await;
-        if k.is_none(){
+        let key: Option<keyboard::KeyName> =  key.await;
+        if key.is_none(){
             continue;
         } else {
-            let k = k.unwrap();
-            info!("main: {} key pressed", k);         
-            // let (result, editing) =
-
-
+            let key = key.unwrap();
+            info!("main: {} key pressed", key);         
 
             
-             line_edit.process_key(k);      
-// Okay, now figure out how to carry on with the outputs from process_key()
-            // if let Some(number) = result {
-            //     info!("Some result in main: {}", &result.unwrap());
-            //     display.push_stack(number);
-            //     display.update_stack_display(None);
-            // } else {
-            //     info!("No result in main around line 200");
-            // }
+            match state {
+                State::Entry => {
+                    if WORK_IN_ENTRY_MODE.contains(key) | ENTER_AND_EDIT_ENTRY_MODE.contains(key){
+                         display.update_stack_display(line_edit.process_number_keys(key));
+                        info!("In entry, process_key: {}", key);
+                    } else {
+                        state = State::Calculating;
+                        info!("In entry, setting self.state to calculating for: {}", key);
+                        line_edit.process_calculate_key(key);
+                    }
+                },
+                State::Calculating => {
+                    if ENTER_AND_EDIT_ENTRY_MODE.contains(key){
+                        state = State::Entry;
+                        entry_line = line_edit.process_number_keys(key);
+                        info!("In calculating, setting self.state to entry for: {}", key);
+                    } else {
+                        info!("In calculating, process_key: {}", key);
+                        line_edit.process_calculate_key(key);
+                    }
+                    info!("In main loop, state is Calculating");
+                },
+            }
 
-            // info!("Back in main loop");
 
-            // number_edit
-            let number_str: String<20> = String::new();
+
+
+
+            // let key = k.unwrap();
+
+            //  line_edit.process_key(key);      
+
+
+            // let number_str: String<20> = String::new();
             
 
-            display.update_stack_display(Some(number_str));
+            // display.update_stack_display(Some(number_str));
             // stack.swapxy();
             // stack.set_changed();                                            //
             //display.entry.editing = !display.entry.editing;
@@ -236,11 +226,6 @@ info!("display interface instantiated");
                 //100E6 is about once per second
         }
     }
-
-
-
-
-
 
 
     // loop{

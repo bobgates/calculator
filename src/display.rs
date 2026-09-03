@@ -24,8 +24,9 @@ use heapless::{format, String};
 use heapless::string::StringInner;
 // use heapless::pool::boxed::Box;
 // use heapless::vec::VecStorageInner;   
-use crate::line_edit::LineEdit;
+use crate::line_edit::{LineEdit, EDIT_LENGTH};
 use crate::stack::Stack;
+
 
 use st7565::displays::DOGL128_6;
 pub use st7565::ST7565;
@@ -82,7 +83,7 @@ pub struct DisplayStruct <'a>{
     // f_font: MonoTextStyle<'a, BinaryColor>,
     // pub  stack: &'a mut stack::Stack,
     number_style: DisplayStyle,
-    eline : Option<String<20>>,
+    eline : Option<String<EDIT_LENGTH>>,
     // pub _entry: &'a LineEdit<'a>,
 }
 
@@ -128,10 +129,10 @@ info!("In display after reset");
    // Converts an f64 into a string with the correct number of significant figures, 
    // and returns the position of the 'E' if it is present
 
-    pub fn num_to_string(&mut self, number: f64 )->(String<20>, Option<i32>){
+    pub fn num_to_string(&mut self, number: f64 )->(String<EDIT_LENGTH>, Option<i32>){
         // info!("num_to_string: number = {}", number);
         if number == 0.0 {
-            let mut output: String<20>=format!("").unwrap();
+            let mut output: String<EDIT_LENGTH>=format!("").unwrap();
             let _ = output.push('0');
             let _ = output.push('.');
             let mut pos=0;
@@ -148,7 +149,7 @@ info!("In display after reset");
             let _ = output.push('0');
             return (output,Some(pos));
         } else {
-            let mut a: String<20>;
+            let mut a: String<EDIT_LENGTH>;
             match self.number_style {
                 DisplayStyle::E(sf) => {
 
@@ -200,7 +201,7 @@ info!("In display after reset");
                         a.insert(p, '.').unwrap();
                     } 
 
-                    let mut b: String<20>=String::new();
+                    let mut b: String<EDIT_LENGTH>=String::new();
                     let mut e_pos: Option<i32> = None;
                     // info!("Contains E");
                     for (l, c) in a.chars().enumerate(){
@@ -233,23 +234,23 @@ info!("In display after reset");
         let _ = self.display.flush();
         self.display.set_display_on(on).unwrap();
 
-        let num_str: String<20> =  format!("{}", "Screen on").unwrap();//Format!("{}".num);
+        let num_str: String<EDIT_LENGTH> =  format!("{}", "Screen on").unwrap();//Format!("{}".num);
         let _ =Text::new(&num_str, Point::new(0, 13), self.font).draw(&mut self.display);
          self.display.flush().unwrap(); 
     }
 
     // Updates the display with the current stack values and the current entry line
     // if it is active, or stack x value if it is not.
-    pub fn update_stack_display(&mut self, entry_line: Option<String<20>>) {
+    pub fn update_stack_display(&mut self, entry_line: Option<String<EDIT_LENGTH>>) {
         self.display.clear(BinaryColor::Off);
 
         // let (x, y, z, t) = self.stack.fetch_values();                   // This seems to work
         let x:f64=1.234567; let y:f64=23.456799; let z:f64=567.8901; let t:f64=7896.1234;
         info!("In display.update_stack_display - x: {}, y: {}, z: {}, t: {}", x, y, z, t);
 
-        let mut outstr: String<20>=String::new();
+        let mut outstr: String<EDIT_LENGTH>=String::new();
         let mut e_pos: Option<i32> = None;
-        // let mut line : Option<String<20>> = None;
+        // let mut line : Option<String<EDIT_LENGTH>> = None;
 
         let (t_buffer_str, _) = self.num_to_string(t);
         let _= Text::new("t", Point::new(NAME_LEFT, T_LABEL_BOTTOM), self.stack_names_font).draw(&mut self.display);
@@ -279,7 +280,7 @@ info!("In display after reset");
                         } else {                         
                             e_pos = Some(l.try_into().unwrap()); //or e is where we are in the loop over l
                         }
-                        outstr.push('E').unwrap(); // don't forget to return the E!
+                        outstr.push(' ').unwrap(); // don't forget to return the E!
                     } else {
                         info!("--- Not processed in entry_line: key is {}", c);
                         outstr.push(c).unwrap();  
@@ -308,8 +309,8 @@ info!("In display after reset");
     }
 
 
-    pub fn replace_letter(entry_line: Option<String<20>>, letter_out: char, letter_in: char)->Option<String<20>>{
-        let mut out:String<20> = String::new();
+    pub fn replace_letter(entry_line: Option<String<EDIT_LENGTH>>, letter_out: char, letter_in: char)->Option<String<EDIT_LENGTH>>{
+        let mut out:String<EDIT_LENGTH> = String::new();
         if entry_line.is_none(){
             return None;
         };
@@ -325,7 +326,7 @@ info!("In display after reset");
     }
   
 
-    pub fn draw_one_line(&mut self, entry_line: Option<String<20>>, e_pos: Option<i32>, target: DisplayLine){ 
+    pub fn draw_one_line(&mut self, entry_line: Option<String<EDIT_LENGTH>>, e_pos: Option<i32>, target: DisplayLine){ 
   
         let (letter, label_bottom, number_bottom)  = match target {
             DisplayLine::X => {("x", LABEL_BOTTOM, NUMBER_BOTTOM)},
@@ -334,7 +335,7 @@ info!("In display after reset");
             DisplayLine::T => {("t", LABEL_BOTTOM - 3*LINE_SPACING, NUMBER_BOTTOM - 3*LINE_SPACING)},
         };
 
-        let mut none_line = String::<20>::new();
+        let mut none_line = String::<EDIT_LENGTH>::new();
         let _ = write!(none_line, "none line");
         
 

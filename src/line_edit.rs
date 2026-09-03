@@ -16,10 +16,9 @@ use heapless::String;
 // use crate::keyboard::Keyboard;
 use crate::keyboard::{ENTER_AND_EDIT_ENTRY_MODE, WORK_IN_ENTRY_MODE};
 use crate::keyboard::KeyName;
-// use crate::Keyboard::
-// use crate::keyboard::KEYNAME;
 
-const EDIT_LENGTH: usize = 22;      // Two spare characters if there are a couple of off by 1 errors!
+
+pub const EDIT_LENGTH: usize = 22;      // Two spare characters if there are a couple of off by 1 errors!
 
 // use crate::stack::Stack;
 
@@ -74,43 +73,35 @@ impl LineEdit{//<'_>{
         }  
     }
 
-
-    pub fn process_number_keys(&mut self, key: KeyName)->Option<f64> {  
+    // Only called in Entry mode, so we know that the key is a number 
+    // or a decimal point or E or +/-
+    pub fn process_number_keys(&mut self, key: KeyName)->Option<String<EDIT_LENGTH>>{ 
 
         match key{
             KeyName::Enter => {
-                match self.state {
-                    Entry => {
-                        for c in self.line.chars() {
-                            info!("     pnk: in Enter: line char: {}", c);
-                        }
-                        let result = self.line.parse::<f64>();
-                        if result.is_ok() {
-                            let a = result.unwrap();
-                            info!("    pnk: result is ok, parsed value: {}", a);
-                            return Some(a);
-                        } else {
-                            info!("    pnk: result is NOT ok");
-                            for c in self.line.chars() {
-                                info!("****** process_number_keys: line char: {}", c);
-                            }
-                            return None;
-                        }
-                    },
-                    Calculating => {
-                        info!("calculating");
-                        info!("process_number_keys: set editing to TRUE");
-                        // self.start_editing(); 
-                        return None;
-                    },
-                    // Undefined => {
-                    //     info!("WAAAK WAAAK WAAAK - state is undefined, should never happen");
-                    //     return None;
-                    // }
+                for c in self.line.chars() {
+                    info!("     pnk: in Enter: line char: {}", c);
                 }
+                if self.line.chars().last()==Some('E'){
+                    info!("     pnk: line ends with E, so adding a 0");
+                    self.line.push('0').unwrap();
+                }
+                let result = self.line.parse::<f64>();
+                if result.is_ok() {
+                    let a = result.unwrap();
+                    info!("    pnk: result is ok, parsed value: {}", a);
+                    return Some(self.line.clone());
+                } else {
+                    info!("    pnk: result is NOT ok");
+                    for c in self.line.chars() {
+                        info!("****** process_number_keys: line char: {}", c);
+                    }
+                    return None;
+                }
+        
             },                          //----------------------------**************************************** WORK HERE
             KeyName::Back => 
-                if self.line.len()>1 && self.state == Entry {
+                if self.line.len()>1 {
                     info!("popping a character from the line");
                     self.line.pop();
                 } else {                                                        // !todo else..
@@ -174,38 +165,40 @@ impl LineEdit{//<'_>{
             info!("process_number_keys: line char: {}", c);
         }
         
-        let result = self.line.parse::<f64>();
-        result.ok()      
+        // let result = self.line.parse::<f64>();
+        // result.ok()      
+
+        Some(self.line.clone())
     }
 
 
     // Eats the current key and routes it to the appropriate state
-    pub fn process_key(&mut self, key: KeyName) { //-> (Option<f64>, State) {
-        match self.state {
-            Entry => {
-                if WORK_IN_ENTRY_MODE.contains(key) | ENTER_AND_EDIT_ENTRY_MODE.contains(key){
-                    self.process_number_keys(key);
-                    info!("In entry, process_key: {}", key);
-                } else {
-                    self.state = Calculating;
-                    info!("In entry, setting self.state to calculating for: {}", key);
-                    self.process_calculate_key(key);
-                }
-            },
-            Calculating => {
-                if ENTER_AND_EDIT_ENTRY_MODE.contains(key){
-                    self.state = Entry;
-                    self.process_number_keys(key);
-                    info!("In calculating, setting self.state to entry for: {}", key);
-                } else {
-                    info!("In calculating, process_key: {}", key);
-                    self.process_calculate_key(key);
-                }
-            }
-        }
-    }
+    // pub fn process_key(&mut self, key: KeyName) { //-> (Option<f64>, State) {
+    //     match self.state {
+    //         Entry => {
+    //             if WORK_IN_ENTRY_MODE.contains(key) | ENTER_AND_EDIT_ENTRY_MODE.contains(key){
+    //                 self.process_number_keys(key);
+    //                 info!("In entry, process_key: {}", key);
+    //             } else {
+    //                 self.state = Calculating;
+    //                 info!("In entry, setting self.state to calculating for: {}", key);
+    //                 self.process_calculate_key(key);
+    //             }
+    //         },
+    //         Calculating => {
+    //             if ENTER_AND_EDIT_ENTRY_MODE.contains(key){
+    //                 self.state = Entry;
+    //                 self.process_number_keys(key);
+    //                 info!("In calculating, setting self.state to entry for: {}", key);
+    //             } else {
+    //                 info!("In calculating, process_key: {}", key);
+    //                 self.process_calculate_key(key);
+    //             }
+    //         }
+    //     }
+    // }
 
-    // Takes a key name and responds it that
+    // Takes a key name and responds if that
     // key can work in entry mode: numbers, PLUSMINUS, etc
     pub fn works_in_entry_mode(key: KeyName)->bool{
         WORK_IN_ENTRY_MODE.contains(key) | ENTER_AND_EDIT_ENTRY_MODE.contains(key)    
