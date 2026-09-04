@@ -32,7 +32,7 @@ use st7565::displays::DOGL128_6;
 pub use st7565::ST7565;
 use st7565::modes::GraphicsMode;
 
-use crate::stack::{self, Stack};
+use crate::stack::Stack;
 use crate::State::Calculating;
 use num_traits::float::FloatCore;
 
@@ -84,7 +84,7 @@ pub struct DisplayStruct <'a>{
     number_style: DisplayStyle,
     eline : Option<String<EDIT_LENGTH>>,
     state: crate::State,
-    stack: &'a Stack,
+    stack: &'a mut Stack,
     // pub _entry: &'a LineEdit<'a>,
 }
 
@@ -96,7 +96,7 @@ impl <'a> DisplayStruct <'a>{
                 e_font: MonoTextStyle<'a, BinaryColor>,
                 // f_font: MonoTextStyle<'a, BinaryColor>,
                 number_style: DisplayStyle,
-                stack_ref: &'a Stack,
+                stack_ref: &'a mut Stack,
             ) -> Self {
         
         display.reset(&mut reset_pin, &mut Delay).unwrap();

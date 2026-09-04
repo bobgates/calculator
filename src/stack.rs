@@ -10,7 +10,7 @@ pub struct Stack {
 }
 
 impl Stack {
-    pub const fn new() -> Self {
+    pub const fn new() -> Stack {
         let data = RefCell::new([1.0, 2.0, 3.0, 4.0]);
         let last_x: f64 = 0.0;
         Stack{

@@ -129,7 +129,7 @@ async fn main (_spawner: Spawner) {
         stacknames_font, //: MonoTextStyle<'a, BinaryColor>,
         e_font, //: MonoTextStyle<'a, BinaryColor>,
         number_style,
-        & stack
+        &mut stack
     );
 
     display.set_on(true);
@@ -179,16 +179,15 @@ async fn main (_spawner: Spawner) {
             match state {
                 State::EnterEntry => {
                     state = State::Entry;
-                    display.update_stack_display(line_edit.process_number_keys(key));
+                    {
+                        display.update_stack_display(line_edit.process_number_keys(key));
+                    }
                 },
                 State::Entry => {
                     if WORK_IN_ENTRY_MODE.contains(key) | ENTER_AND_EDIT_ENTRY_MODE.contains(key){
                         display.update_stack_display(line_edit.process_number_keys(key));
                         if key == KeyName::Enter {
                             state = State::Calculating;
-                            stack.push(123.456);
-                            // stack.push(line_edit.line.parse::<f64>().unwrap_or(0.0));
-                            // stack._changed();
                         }
                         info!("Leaving: main.state.entry, process_key: {}", key);
                     } else {
