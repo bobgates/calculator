@@ -186,7 +186,8 @@ async fn main (_spawner: Spawner) {
                         display.update_stack_display(line_edit.process_number_keys(key));
                         if key == KeyName::Enter {
                             state = State::Calculating;
-                            stack.push(line_edit.line.parse::<f64>().unwrap_or(0.0));
+                            stack.push(123.456);
+                            // stack.push(line_edit.line.parse::<f64>().unwrap_or(0.0));
                             // stack._changed();
                         }
                         info!("Leaving: main.state.entry, process_key: {}", key);

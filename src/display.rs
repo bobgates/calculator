@@ -32,7 +32,7 @@ use st7565::displays::DOGL128_6;
 pub use st7565::ST7565;
 use st7565::modes::GraphicsMode;
 
-use crate::stack;
+use crate::stack::{self, Stack};
 use crate::State::Calculating;
 use num_traits::float::FloatCore;
 
@@ -84,7 +84,7 @@ pub struct DisplayStruct <'a>{
     number_style: DisplayStyle,
     eline : Option<String<EDIT_LENGTH>>,
     state: crate::State,
-    stack: &'a stack::Stack,
+    stack: &'a Stack,
     // pub _entry: &'a LineEdit<'a>,
 }
 
@@ -96,7 +96,7 @@ impl <'a> DisplayStruct <'a>{
                 e_font: MonoTextStyle<'a, BinaryColor>,
                 // f_font: MonoTextStyle<'a, BinaryColor>,
                 number_style: DisplayStyle,
-                stack_ref: &'a stack::Stack,
+                stack_ref: &'a Stack,
             ) -> Self {
         
         display.reset(&mut reset_pin, &mut Delay).unwrap();
@@ -243,7 +243,7 @@ info!("In display after reset");
     pub fn update_stack_display(&mut self, entry_line: Option<String<EDIT_LENGTH>>) {
         self.display.clear(BinaryColor::Off);
 
-        let (x, y, z, t) = self.stack.get();                   // This seems to work
+        let (x, y, z, t) = self.stack.get_all();                   // This seems to work
         info!("In display.update_stack_display - x: {}, y: {}, z: {}, t: {}", x, y, z, t);
 
         let mut outstr: String<EDIT_LENGTH>=String::new();
