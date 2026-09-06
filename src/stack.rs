@@ -11,7 +11,7 @@ pub struct Stack {
 
 impl Stack {
     pub const fn new() -> Stack {
-        let data = RefCell::new([1.0, 2.0, 3.0, 4.0]);
+        let data = RefCell::new([1.234560, 23.4567, 345.678, 4567.89]);
         let last_x: f64 = 0.0;
         Stack{
             data,

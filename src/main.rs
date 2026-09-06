@@ -9,10 +9,12 @@ use core::{cell::RefCell};
 // use core::mem::MaybeUninit;
 
 use cortex_m::asm::delay;
-// use defmt::*;
-// use defmt::{Format};
+use defmt::*;
+use defmt::{Format};
 
 // use crate::State::EnterEntry;
+
+//use crate::line_edit::EDIT_LENGTH;
 
 use {defmt_rtt as _, panic_probe as _};
 
@@ -21,6 +23,7 @@ use defmt::info; //enables info! for debugging;
 mod display;
 use display::DisplayStruct;
 use display::DisplayStyle;
+use display::DisplayLine;
 use display_interface_spi::SPIInterface;
 
 use embassy_embedded_hal::shared_bus::blocking::spi::SpiDeviceWithConfig;
@@ -38,15 +41,16 @@ use embassy_rp::spi::{Blocking, Spi};// ClkPin, Config, MisoPin, MosiPin,
 use embassy_sync::blocking_mutex::Mutex;
 use embassy_sync::blocking_mutex::raw::NoopRawMutex;
 
-use embedded_graphics::mono_font::ascii::{FONT_6X10, FONT_7X13, FONT_9X18_BOLD};//, ,FONT_10X20 FONT_9X18_BOLD};
+use embedded_graphics::mono_font::ascii::{FONT_6X10, FONT_7X13, FONT_9X18};//, ,FONT_10X20 FONT_9X18_BOLD};
+use profont::PROFONT_14_POINT;
 use embedded_graphics::mono_font::MonoTextStyle;
 use embedded_graphics::pixelcolor::BinaryColor;
 
 mod flash_led;
 use flash_led::FlashLed;
 
-// use heapless::string::StringInner;
-// use heapless::String;// format};
+use heapless::string::StringInner;
+use heapless::{String, format};
 
 mod keyboard;
 use keyboard::{Keyboard, KeyName};
@@ -54,6 +58,7 @@ use keyboard::{ENTER_AND_EDIT_ENTRY_MODE, WORK_IN_ENTRY_MODE};
 
 mod line_edit;
 use line_edit::LineEdit;
+use line_edit::EDIT_LENGTH;
 
 use st7565::GraphicsPageBuffer;
 use st7565::displays::DOGL128_6;
@@ -81,7 +86,7 @@ pub static PICOTOOL_ENTRIES: [embassy_rp::binary_info::EntryAddr; 4] = [
 
 #[derive(Clone, Debug, Copy, PartialEq)]
 pub enum State {
-    EnterEntry,
+    // EnterEntry,
     Entry,
     // EnterCalculating,
     // LeaveEntry,
@@ -115,7 +120,10 @@ async fn main (_spawner: Spawner) {
     let display: ST7565<SPIInterface<embassy_embedded_hal::shared_bus::blocking::spi::SpiDeviceWithConfig<'_, NoopRawMutex, embassy_rp::spi::Spi<'_, SPI0, embassy_rp::spi::Blocking>, Output<'_>>, Output<'_>>, DOGL128_6, GraphicsMode<'_, 128, 8>, 128, 64, 8> = st7565::ST7565::new(display_interface, DOGL128_6)
         .into_graphics_mode(&mut page_buffer);       
     let reset_pin = Output::new(p.PIN_28, Level::Low);
-    let font = MonoTextStyle::new(&FONT_9X18_BOLD, BinaryColor::On);
+    // let font = MonoTextStyle::new(&FONT_9X18, BinaryColor::On);
+    let font = MonoTextStyle::new(&FONT_9X18, BinaryColor::On);
+// let font = MonoTextStyle::new(&PROFONT_14_POINT, BinaryColor::On);
+    
     let stacknames_font = MonoTextStyle::new(&FONT_7X13, BinaryColor::On);
     let e_font = MonoTextStyle::new(&FONT_6X10, BinaryColor::On);
     let number_style = DisplayStyle::E(4);
@@ -134,7 +142,7 @@ async fn main (_spawner: Spawner) {
 
     display.set_on(true);
 
-    display.update_stack_display(None);
+    // display.update_stack_display(Ok("reset"::String<EDIT_LENGTH));
 
     let mut keyboard = Keyboard::new(
         [
@@ -157,17 +165,15 @@ async fn main (_spawner: Spawner) {
         ],
     );
 
-    let mut state = State::Calculating;
-
+    let mut state: State = State::Calculating;
     let mut line_edit = LineEdit::new();
 
+    let _number_style =  DisplayStyle::E(3);
+    display.update_stack_display(None);
 // ******************************************************************************************** //
-    //let entry_line: Option<String<EDIT_LENGTH>> = Some(String::new());
-    let _number_style =  DisplayStyle::E(5);
-    // stack.push(123.0);
     loop{
         //100E6 is about once per second
-        delay(10_000_000); 
+        delay(1_000_000); 
         let key = keyboard.scan();
         let key: Option<keyboard::KeyName> =  key.await;
         if key.is_none(){
@@ -177,19 +183,42 @@ async fn main (_spawner: Spawner) {
             info!("main: {} key pressed", key);         
 
             match state {
-                State::EnterEntry => {
-                    state = State::Entry;
-                    {
-                        display.update_stack_display(line_edit.process_number_keys(key));
-                    }
-                },
                 State::Entry => {
+                    info!("State: entry");
                     if WORK_IN_ENTRY_MODE.contains(key) | ENTER_AND_EDIT_ENTRY_MODE.contains(key){
-                        display.update_stack_display(line_edit.process_number_keys(key));
-                        if key == KeyName::Enter {
-                            state = State::Calculating;
-                        }
-                        info!("Leaving: main.state.entry, process_key: {}", key);
+
+                            info!("------Entry ");
+                            //let entry_line: String::<EDIT_LENGTH> = line_edit.get_entry_line();
+                            let entry_line = line_edit.process_number_keys(key);
+                            
+                            // info!("Entry line: {}", entry_line.unwrap());
+
+                            let mut e_pos: Option<i32> = None;
+                            info!("epos: {}", e_pos);
+                            let mut outstr : String<EDIT_LENGTH> = String::new();
+                            match entry_line.clone() {
+                                None => { info!("Nothing in entry_line") ;},
+                                Some(numstr) => for (i, c) in numstr.chars().enumerate(){
+                                    
+                                    if c=='E' {
+                                        e_pos=Some(i.try_into().unwrap());
+                                        let _ = outstr.push(' ');
+                                        info!("E");
+                                    } else {
+                                        let _ = outstr.push(c);
+                                        info!("{}",c)
+                                    }
+
+                                    info!("{}: {}",i, c);
+                                }
+                            }
+
+                            let pstr: Option<String<EDIT_LENGTH>> = if outstr.len()>0 {
+                                Some(outstr)
+                            } else {
+                                None
+                            };
+                            display.draw_one_line(pstr, e_pos, DisplayLine::X);
                     } else {
                         state = State::Calculating;
                         info!("In entry, setting self.state to calculating for: {}", key);
@@ -197,28 +226,18 @@ async fn main (_spawner: Spawner) {
                     }
                 },
                 State::Calculating => {
+                    info!("State: calculating - key is: {}", key);
                     if ENTER_AND_EDIT_ENTRY_MODE.contains(key){
-                        state = State::EnterEntry;
+                        state = State::Entry; info!("Change state to Entry.......");
                         display.update_stack_display(line_edit.process_number_keys(key));
-                        info!("In calculating, setting self.state to entry for: {}", key);
+                        info!("In calculating, setting global: state to Entry for: {}", key);
+                        // This is also displayed on the LCD screen
                     } else {
                         info!("In calculating, process_key: {}", key);
                         line_edit.process_calculate_key(key);
                     }
-                    info!("In main loop, state is Calculating");
                 },
             }
-
         }
     }
-
-
-    // loop{
-    //     // info!("In loop");
-    //     display.update_stack_display(None); 
-    //     stack._swapxy();
-    //     stack._changed();
-    //     delay(100_000_000);
-    // }
-
 }

@@ -5,6 +5,7 @@
 // use core::{f64, num};
 // use core::fmt::Write;
 // use core::{fmt, result};
+// use core::{error::Error, result};
 use defmt::{info};//, 
 // use defmt::Format;
 
@@ -46,7 +47,13 @@ pub const EDIT_LENGTH: usize = 22;      // Two spare characters if there are a c
 #[derive(Debug)]
 pub struct LineEdit{ 
     pub line: String<EDIT_LENGTH>
+
 }
+
+// enum TextOrNum {
+//     Text(Option<String::<EDIT_LENGTH>>),
+//     Num(Result<f64, String<EDIT_LENGTH>>)
+// }
 
 impl LineEdit{//<'_>{
     pub fn new()->LineEdit{ 
@@ -66,6 +73,16 @@ impl LineEdit{//<'_>{
         }  
     }
 
+    pub fn get_entry_line(&self)->String<EDIT_LENGTH>{
+        return self.line.clone();
+    }
+
+    pub fn clear(&mut self){
+        info!("_________________ clearing line in line.edit");
+        self.line = String::<EDIT_LENGTH>::new();
+
+    }
+
     // Only called in Entry mode, so we know that the key is a number 
     // or a decimal point or E or +/-
     pub fn process_number_keys(&mut self, key: KeyName)->Option<String<EDIT_LENGTH>>{ 
@@ -83,12 +100,15 @@ impl LineEdit{//<'_>{
                 if result.is_ok() {
                     let a = result.unwrap();
                     info!("    pnk: result is ok, parsed value: {}", a);
+
                     return Some(self.line.clone());
                 } else {
                     info!("    pnk: result is NOT ok");
                     for c in self.line.chars() {
                         info!("****** process_number_keys: line char: {}", c);
                     }
+                    let mut error = String::<EDIT_LENGTH>::new();
+                    error.push_str("Bad num in input").unwrap();
                     return None;
                 }
         

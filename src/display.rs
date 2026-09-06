@@ -25,7 +25,6 @@ use heapless::{format, String};
 // use heapless::pool::boxed::Box;
 // use heapless::vec::VecStorageInner;   
 use crate::line_edit::{EDIT_LENGTH};//LineEdit
-// use crate::stack::Stack;
 
 
 use st7565::displays::DOGL128_6;
@@ -94,21 +93,14 @@ impl <'a> DisplayStruct <'a>{
                 font: MonoTextStyle<'a, BinaryColor>,
                 stack_names_font: MonoTextStyle<'a, BinaryColor>,
                 e_font: MonoTextStyle<'a, BinaryColor>,
-                // f_font: MonoTextStyle<'a, BinaryColor>,
                 number_style: DisplayStyle,
                 stack_ref: &'a mut Stack,
             ) -> Self {
         
         display.reset(&mut reset_pin, &mut Delay).unwrap();
 
-        let _= Text::new("d", Point::new(NAME_LEFT, 2), stack_names_font).draw(&mut display);
-        let _ = Text::new(":", Point::new(COLON_LEFT, 2), stack_names_font).draw(&mut display);
-        let _ = Text::new("Hello world", Point::new(NUM_LEFT, 2), font).draw(&mut display);
-        // if e_pos.is_some() {
-        //     let _ = Text::new("E", Point::new(NUM_LEFT + NUM_WIDTH * e_pos.unwrap() + 2, number_bottom-2), self.e_font).draw(&mut self.display);
-        // }
-
-info!("In display after reset");
+info!("In display at startup");
+info!("_____________________");
 
         display.flush().unwrap();       // Flushes internal buffer to the display
 
@@ -151,16 +143,20 @@ info!("In display after reset");
             let mut a: String<EDIT_LENGTH>;
             match self.number_style {
                 DisplayStyle::E(sf) => {
+// info!("disp.nts sf = {}", sf);
 
                     let exponent: i32 = 1 + libm::log10(*number).floor() as i32;
-
+// info!("exponent = {}", exponent);
                     let mut before_dp = exponent % 3;  // This gives everything powers for 10^3, 10^-3, etc
+// info!("before_dp = {}", before_dp);
 
                     if before_dp ==0 {before_dp=3}; 
                     if before_dp<0 {
                         before_dp=3+before_dp
                     };
                     let exp = exponent - before_dp;
+// info!("exponent = {}", exponent);
+// info!("before_dp = {}", before_dp);
 
                     let n = (*number/(10.0_f64).powi(exponent-sf)).trunc()/10_f64.powi(sf-before_dp);
                     // 1. the cutting off of the number to the correct number of significant figures
@@ -245,7 +241,14 @@ info!("In display after reset");
 
         let (x, y, z, t) = self.stack.get_all();                   // This seems to work
         info!("In display.update_stack_display - x: {}, y: {}, z: {}, t: {}", x, y, z, t);
-
+        info!("entry_line:");
+        if entry_line.is_some(){
+            for i in entry_line.clone().unwrap().chars() {
+                info!("{}",i);
+            }
+        } else {
+            info!("empty");
+        }
         let mut outstr: String<EDIT_LENGTH>=String::new();
         let mut e_pos: Option<i32> = None;
         // let mut line : Option<String<EDIT_LENGTH>> = None;
@@ -255,16 +258,17 @@ info!("In display after reset");
         let _ = Text::new(":", Point::new(COLON_LEFT, T_LABEL_BOTTOM), self.stack_names_font).draw(&mut self.display);
         let _ = Text::new(&t_buffer_str, Point::new(NUM_LEFT, T_NUM_BOTTOM), self.font).draw(&mut self.display);
 
-
-        self.display.flush().unwrap(); 
-
         
         let  (outstr, e_pos) = 
             if entry_line.is_none(){
-                info!("No entry line, so display x: {}", x);
+                info!("Update stack display: No entry line, so display x: {}", x);
                 self.num_to_string(&x)
             } else {
+                info!("Update stack display with an entry line:");
+
                 for (l, c) in entry_line.unwrap().chars().enumerate(){
+                    info!("Key is {}",c);
+
                     if c == '.' {
                         outstr.push('.').unwrap();
                     } else if c == '-' {
@@ -273,8 +277,7 @@ info!("In display after reset");
                         outstr.push(c).unwrap();
                     } else if c == 'E' {                // Set epos
                         if outstr.len() == 0 {
-                            outstr.push('1').unwrap();
-                            e_pos = Some(1);            // e is second char after the 1
+                            outstr.push('0').unwrap();           // e is second char after the 1 at loc 0
                         } else {                         
                             e_pos = Some(l.try_into().unwrap()); //or e is where we are in the loop over l
                         }
@@ -285,7 +288,7 @@ info!("In display after reset");
                     }  
                 }
                 for a in outstr.chars() {
-                    info!("entry_line = {}", a);
+                    info!("entry_line, outstr.chars: = {}", a);
                 }
                 info!("epos = {}",e_pos);
                 (outstr, e_pos)
@@ -307,12 +310,12 @@ info!("In display after reset");
     }
 
 
-    pub fn replace_letter(entry_line: Option<String<EDIT_LENGTH>>, letter_out: char, letter_in: char)->Option<String<EDIT_LENGTH>>{
+    pub fn replace_letter(entry_line: &Option<String<EDIT_LENGTH>>, letter_out: char, letter_in: char)->Option<String<EDIT_LENGTH>>{
         let mut out:String<EDIT_LENGTH> = String::new();
         if entry_line.is_none(){
             return None;
         };
-        let line = entry_line.unwrap();
+        let line = entry_line.clone().unwrap();
         for c in line.chars(){
             if c == letter_out {
                 let _ = out.push(letter_in);
@@ -326,6 +329,26 @@ info!("In display after reset");
 
     pub fn draw_one_line(&mut self, entry_line: Option<String<EDIT_LENGTH>>, e_pos: Option<i32>, target: DisplayLine){ 
   
+        let target_line = match target {
+            DisplayLine::X => {'X'},
+            DisplayLine::Y => {'Y'},
+            DisplayLine::Z => {'Z'},
+            DisplayLine::T => {'T'},        
+        }; 
+    
+        info!("\nIn display.draw_one_line, target is {}", target_line);
+        if entry_line.is_none(){
+            info!("entry_line is none in dislay.draw_one_line");
+            return;
+        }
+        let output_line = entry_line.clone();
+        let output_line = output_line.unwrap();
+        
+        info!("entry line is:");
+        for (i, c) in output_line.chars().enumerate(){
+            info!("{}-{}", i,c);
+        }
+
         let (letter, label_bottom, number_bottom)  = match target {
             DisplayLine::X => {("x", LABEL_BOTTOM, NUMBER_BOTTOM)},
             DisplayLine::Y => {("y", LABEL_BOTTOM - LINE_SPACING, NUMBER_BOTTOM - LINE_SPACING)},
@@ -338,10 +361,8 @@ info!("In display after reset");
         
 
         // HERE: replace the e in entry_line with a space
-        Self::replace_letter(entry_line.clone(), 'E', ' ');
-        if entry_line.is_none(){
-            return;
-        }
+        Self::replace_letter(&entry_line , 'E', ' ');
+
         let line = entry_line.unwrap();
 
         // let x_buffer_str = entry_line.clone().unwrap();;
@@ -352,7 +373,7 @@ info!("In display after reset");
             let _ = Text::new("E", Point::new(NUM_LEFT + NUM_WIDTH * e_pos.unwrap() + 3, number_bottom-2), self.e_font).draw(&mut self.display);
         }
         // Put back the e
-        Self::replace_letter(Some(line), ' ', 'E');
+        Self::replace_letter(&Some(line), ' ', 'E');
         
     }
 }
