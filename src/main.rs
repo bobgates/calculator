@@ -1,8 +1,8 @@
 #![no_std]
 #![no_main]
 
-// mod calculate;
-// use calculate::Calculate;   
+mod calculate;
+use calculate::Calculate;   
 
 use core::{cell::RefCell};
 // use core::{fmt::Display};
@@ -137,7 +137,7 @@ async fn main (_spawner: Spawner) {
         stacknames_font, //: MonoTextStyle<'a, BinaryColor>,
         e_font, //: MonoTextStyle<'a, BinaryColor>,
         number_style,
-        &mut stack
+        & mut stack
     );
 
     display.set_on(true);
@@ -167,6 +167,7 @@ async fn main (_spawner: Spawner) {
 
     let mut state: State = State::Calculating;
     let mut line_edit = LineEdit::new();
+    let mut calculate : Calculate = Calculate::new(&mut stack); 
 
     let _number_style =  DisplayStyle::E(3);
     display.update_stack_display(None);
@@ -190,9 +191,6 @@ async fn main (_spawner: Spawner) {
                             info!("------Entry ");
                             //let entry_line: String::<EDIT_LENGTH> = line_edit.get_entry_line();
                             let entry_line = line_edit.process_number_keys(key);
-                            
-                            // info!("Entry line: {}", entry_line.unwrap());
-
                             let mut e_pos: Option<i32> = None;
                             info!("epos: {}", e_pos);
                             let mut outstr : String<EDIT_LENGTH> = String::new();
@@ -208,11 +206,9 @@ async fn main (_spawner: Spawner) {
                                         let _ = outstr.push(c);
                                         info!("{}",c)
                                     }
-
                                     info!("{}: {}",i, c);
                                 }
                             }
-
                             let pstr: Option<String<EDIT_LENGTH>> = if outstr.len()>0 {
                                 Some(outstr)
                             } else {
@@ -222,7 +218,7 @@ async fn main (_spawner: Spawner) {
                     } else {
                         state = State::Calculating;
                         info!("In entry, setting self.state to calculating for: {}", key);
-                        line_edit.process_calculate_key(key);
+                        calculate.process_calculate_key(key);
                     }
                 },
                 State::Calculating => {
@@ -234,7 +230,7 @@ async fn main (_spawner: Spawner) {
                         // This is also displayed on the LCD screen
                     } else {
                         info!("In calculating, process_key: {}", key);
-                        line_edit.process_calculate_key(key);
+                        calculate.process_calculate_key(key);
                     }
                 },
             }

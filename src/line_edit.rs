@@ -50,28 +50,13 @@ pub struct LineEdit{
 
 }
 
-// enum TextOrNum {
-//     Text(Option<String::<EDIT_LENGTH>>),
-//     Num(Result<f64, String<EDIT_LENGTH>>)
-// }
 
 impl LineEdit{//<'_>{
     pub fn new()->LineEdit{ 
-        let line = String::<EDIT_LENGTH>::new();
-        // let state = Calculating; 
-        // let previous_state = Calculating;   
+        let line = String::<EDIT_LENGTH>::new(); 
         LineEdit {  /*state,*/ line}
     }
 
-    pub fn process_calculate_key(&mut self, key: KeyName){
-        info!("process_calculate_key: {}", key);      
-        match key{
-            KeyName::Enter => {
-                // self.stack.push_x();
-            },
-            _ => {info!("\t\tI don't yet know how to process {}", key)}
-        }  
-    }
 
     pub fn get_entry_line(&self)->String<EDIT_LENGTH>{
         return self.line.clone();

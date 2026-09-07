@@ -1,10 +1,18 @@
+/* 
+    The idea of this crate is that you give it the
+    numbers you want on the stack, and it creates what
+    needs to go on the display. For a number in entry
+    mode, it just shows the current string. For all
+    other numbers, which are already f64, it converts
+    them to string according to the format rule of the
+    day.
 
-// use cortex_m::asm::delay;
+*/
+
+
 use defmt::info;
 use core::f64;//, todo};
 use core::fmt::Write;
-// use core::mem::MaybeUninit;
-// use core::num;
 use display_interface_spi::SPIInterface;
 
 use embassy_rp::gpio::Output;
@@ -12,18 +20,12 @@ use embassy_rp::peripherals::{SPI0};
 use embassy_sync::blocking_mutex::raw::NoopRawMutex;
 use embassy_time::Delay;
 
-
-// use embedded_graphics::primitives::{Circle, PrimitiveStyle, Rectangle};
-// use embedded_graphics::mono_font::ascii::{FONT_7X13, FONT_10X20, FONT_6X10, FONT_9X18, FONT_9X18_BOLD};
 use embedded_graphics::mono_font::MonoTextStyle;
 use embedded_graphics::pixelcolor::BinaryColor;
 use embedded_graphics::{prelude::*};
 use embedded_graphics::text::Text;
 
-use heapless::{format, String};
-// use heapless::string::StringInner;
-// use heapless::pool::boxed::Box;
-// use heapless::vec::VecStorageInner;   
+use heapless::{format, String}; 
 use crate::line_edit::{EDIT_LENGTH};//LineEdit
 
 
@@ -70,7 +72,30 @@ pub enum DisplayLine{
     T,
 }
 
+// If Text is some, then only three lines
+// of numbers used.
+enum XLine {
+    Number(f64),
+    Text(Option<String<EDIT_LENGTH>>),
+}
 
+struct StackView{
+    yzt: [f64;3],
+    x:XLine,
+}
+impl StackView{
+    pub fn get_all(self)->(XLine, f64,f64,f64){
+// If XLine is number, convert via num_to_string
+// If XLine is text, just go and use it.
+// make yzt into strings via num_to_string.
+        (XLine::Number(123.45),
+            self.yzt[0], self.yzt[1], self.yzt[2])
+    }
+// Do we avoid unecessary conversions, or is this
+// premature optimisation?
+
+
+}
 
 // #[derive(EnumSetType, Debug, Format)]
 // #[derive(Clone)]
@@ -83,8 +108,7 @@ pub struct DisplayStruct <'a>{
     number_style: DisplayStyle,
     eline : Option<String<EDIT_LENGTH>>,
     state: crate::State,
-    stack: &'a mut Stack,
-    // pub _entry: &'a LineEdit<'a>,
+    stack_view: StackView,
 }
 
 impl <'a> DisplayStruct <'a>{
@@ -94,7 +118,8 @@ impl <'a> DisplayStruct <'a>{
                 stack_names_font: MonoTextStyle<'a, BinaryColor>,
                 e_font: MonoTextStyle<'a, BinaryColor>,
                 number_style: DisplayStyle,
-                stack_ref: &'a mut Stack,
+                // stack_ref: &'a mut Stack,
+                stack_view: StackView,
             ) -> Self {
         
         display.reset(&mut reset_pin, &mut Delay).unwrap();
@@ -113,115 +138,14 @@ info!("_____________________");
             number_style,
             eline: None,
             state: Calculating,
-            stack: stack_ref,
+            stack_view: stack_view,
         }
     }
 
    // Converts an f64 into a string with the correct number of significant figures, 
    // and returns the position of the 'E' if it is present
 
-    pub fn num_to_string(&mut self, number: &f64 )->(String<EDIT_LENGTH>, Option<i32>){
-        // info!("num_to_string: number = {}", number);
-        if *number == 0.0 {
-            let mut output: String<EDIT_LENGTH>=format!("").unwrap();
-            let _ = output.push('0');
-            let _ = output.push('.');
-            let mut pos=0;
-            match self.number_style {
-                DisplayStyle::E(sf) => {
-                    pos = sf+2;
-                    for _ in 0..sf {
-                        let _ = output.push('0');
-                    }
-                },
-                _ => { let _ = output.push('X');}       // Debug marker that other modes are not implemented
-            }
-            let _ = output.push('_');
-            let _ = output.push('0');
-            return (output,Some(pos));
-        } else {
-            let mut a: String<EDIT_LENGTH>;
-            match self.number_style {
-                DisplayStyle::E(sf) => {
-// info!("disp.nts sf = {}", sf);
-
-                    let exponent: i32 = 1 + libm::log10(*number).floor() as i32;
-// info!("exponent = {}", exponent);
-                    let mut before_dp = exponent % 3;  // This gives everything powers for 10^3, 10^-3, etc
-// info!("before_dp = {}", before_dp);
-
-                    if before_dp ==0 {before_dp=3}; 
-                    if before_dp<0 {
-                        before_dp=3+before_dp
-                    };
-                    let exp = exponent - before_dp;
-// info!("exponent = {}", exponent);
-// info!("before_dp = {}", before_dp);
-
-                    let n = (*number/(10.0_f64).powi(exponent-sf)).trunc()/10_f64.powi(sf-before_dp);
-                    // 1. the cutting off of the number to the correct number of significant figures
-                    // Leaves exp
-                    // if exp == 0
-
-                    // info!("--- {}E{}", n, exp);     // This produces a different string
-                                                    // to the format statement below,
-                                                    // info! gives .0 if there are no non-zero decimals
-                                                    // format just doesn't return no-zero decimals
-                    a = String::from(format!("{}E{}", n, exp).unwrap());
-                    self.eline = Some(a.clone());
-
-                    // sf here is the number of significant figures to display, 
-                    // but it is being interpreted as the number of decimal places 
-                    // so we need to fix this the number accordingly
-
-                    // There's an issue that if the number is an exact integer,
-                    // it only has one place after the decimal: a zero. We need to 
-                    // add more zeroes to show the full sig figs.
-                    
-                    // This comes down to subtracting the length of a from sf+1
-                    // and adding that many zeroes
-                    // Example: 
-                    // 100.0
-                    //.  that's character length 5, sf we want is 5,  so (sf+1)-len = 6-5 =
-                    // add one zero.
-
-                    let p = a.find("E").unwrap(); // must succeed, defined two lines above
-                    // info!("Found E at {}",p);
-                        
-                    if !a.contains("."){
-                        let required = sf+2 - a.len() as i32;
-                        for _i in 0..required {
-                            a.insert(p,'0').unwrap();
-                        }
-                        a.insert(p, '.').unwrap();
-                    } 
-
-                    let mut b: String<EDIT_LENGTH>=String::new();
-                    let mut e_pos: Option<i32> = None;
-                    // info!("Contains E");
-                    for (l, c) in a.chars().enumerate(){
-                        if c == 'E' {
-                            b.push(' ').unwrap();
-                            e_pos = Some(l.try_into().unwrap());
-                        } else {
-                            b.push(c).unwrap();
-                        }
-                    }   
-                    return(b, e_pos)       
-                },
-                DisplayStyle::_S(_sf) => {
-                    return(format!("Not implemented").unwrap(), None)
-                },
-                DisplayStyle::_FIXED => {
-                    return(format!("Not implemented").unwrap(), None)
-                },
-                DisplayStyle::_ALL => { 
-                    return(format!("Not implemented").unwrap(), None)
-                }
-
-            }
-        }
-    }
+    
     
 
     pub fn set_on(&mut self, on: bool) {
@@ -230,16 +154,30 @@ info!("_____________________");
         self.display.set_display_on(on).unwrap();
 
         let num_str: String<EDIT_LENGTH> =  format!("{}", "Screen on").unwrap();//Format!("{}".num);
-        let _ =Text::new(&num_str, Point::new(0, 13), self.font).draw(&mut self.display);
+        let _ =Text::new(&num_str, Point::new(0, 18), self.font).draw(&mut self.display);
          self.display.flush().unwrap(); 
     }
+
+
+    pub fn 
+
+
 
     // Updates the display with the current stack values and the current entry line
     // if it is active, or stack x value if it is not.
     pub fn update_stack_display(&mut self, entry_line: Option<String<EDIT_LENGTH>>) {
+        
+        let display_style: DisplayStyle = DisplayStyle::E(4);
+        
         self.display.clear(BinaryColor::Off);
 
-        let (x, y, z, t) = self.stack.get_all();                   // This seems to work
+        if entry_line.is_some{
+
+        } else {
+
+        }
+
+        let (x, y, z, t) = self.stack_view.get_all();                   // This seems to work
         info!("In display.update_stack_display - x: {}, y: {}, z: {}, t: {}", x, y, z, t);
         info!("entry_line:");
         if entry_line.is_some(){
@@ -251,18 +189,19 @@ info!("_____________________");
         }
         let mut outstr: String<EDIT_LENGTH>=String::new();
         let mut e_pos: Option<i32> = None;
-        // let mut line : Option<String<EDIT_LENGTH>> = None;
 
-        let (t_buffer_str, _) = self.num_to_string(&t);
-        let _= Text::new("t", Point::new(NAME_LEFT, T_LABEL_BOTTOM), self.stack_names_font).draw(&mut self.display);
-        let _ = Text::new(":", Point::new(COLON_LEFT, T_LABEL_BOTTOM), self.stack_names_font).draw(&mut self.display);
-        let _ = Text::new(&t_buffer_str, Point::new(NUM_LEFT, T_NUM_BOTTOM), self.font).draw(&mut self.display);
+        // Why is this here? (t_buffer?)
+
+        // let (t_buffer_str, _) = num_to_string(display_style, &t);
+        // let _= Text::new("t", Point::new(NAME_LEFT, T_LABEL_BOTTOM), self.stack_names_font).draw(&mut self.display);
+        // let _ = Text::new(":", Point::new(COLON_LEFT, T_LABEL_BOTTOM), self.stack_names_font).draw(&mut self.display);
+        // let _ = Text::new(&t_buffer_str, Point::new(NUM_LEFT, T_NUM_BOTTOM), self.font).draw(&mut self.display);
 
         
         let  (outstr, e_pos) = 
             if entry_line.is_none(){
                 info!("Update stack display: No entry line, so display x: {}", x);
-                self.num_to_string(&x)
+                num_to_string(display_style,&x)
             } else {
                 info!("Update stack display with an entry line:");
 
@@ -295,9 +234,9 @@ info!("_____________________");
             }; 
     
 
-        let (y_buffer_str, ye_pos) = self.num_to_string(&y);
-        let (z_buffer_str, ze_pos) = self.num_to_string(&z);
-        let (t_buffer_str, te_pos) = self.num_to_string(&t);
+        let (y_buffer_str, ye_pos) = num_to_string(display_style, &y);
+        let (z_buffer_str, ze_pos) = num_to_string(display_style, &z);
+        let (t_buffer_str, te_pos) = num_to_string(display_style, &t);
 
         self.draw_one_line(Some(outstr.clone()), e_pos, DisplayLine::X);
         self.draw_one_line(Some(y_buffer_str), ye_pos, DisplayLine::Y);
@@ -329,6 +268,11 @@ info!("_____________________");
 
     pub fn draw_one_line(&mut self, entry_line: Option<String<EDIT_LENGTH>>, e_pos: Option<i32>, target: DisplayLine){ 
   
+        if entry_line.is_none(){
+            info!("entry_line is none in dislay.draw_one_line");
+            return;
+        }
+
         let target_line = match target {
             DisplayLine::X => {'X'},
             DisplayLine::Y => {'Y'},
@@ -337,10 +281,7 @@ info!("_____________________");
         }; 
     
         info!("\nIn display.draw_one_line, target is {}", target_line);
-        if entry_line.is_none(){
-            info!("entry_line is none in dislay.draw_one_line");
-            return;
-        }
+
         let output_line = entry_line.clone();
         let output_line = output_line.unwrap();
         
@@ -356,12 +297,14 @@ info!("_____________________");
             DisplayLine::T => {("t", LABEL_BOTTOM - 3*LINE_SPACING, NUMBER_BOTTOM - 3*LINE_SPACING)},
         };
 
-        let mut none_line = String::<EDIT_LENGTH>::new();
-        let _ = write!(none_line, "none line");
+        // let mut none_line = String::<EDIT_LENGTH>::new();
+        // let _ = write!(none_line, "none line");
         
 
         // HERE: replace the e in entry_line with a space
-        Self::replace_letter(&entry_line , 'E', ' ');
+        if e_pos.is_some(){
+            Self::replace_letter(&entry_line , 'E', ' ');
+        }   
 
         let line = entry_line.unwrap();
 
@@ -377,5 +320,107 @@ info!("_____________________");
         
     }
 }
+
+
+// Takes a number style, essentially Eng, Sci or Fixed and
+// a number of significant digits and an f64, and returns a 
+// string with the number in the specified format.
+
+pub fn num_to_string(number_style: DisplayStyle, number: &f64 )->(String<EDIT_LENGTH>, Option<i32>){
+    if *number == 0.0 {
+        let mut output: String<EDIT_LENGTH>=format!("").unwrap();
+        let _ = output.push('0');
+        let _ = output.push('.');
+        let mut pos=0;
+        match number_style {
+            DisplayStyle::E(sf) => {
+                pos = sf+2;
+                for _ in 0..sf {
+                    let _ = output.push('0');
+                }
+            },
+            _ => { let _ = output.push('X');}       // Debug marker that other modes are not implemented
+        }
+        let _ = output.push('_');
+        let _ = output.push('0');
+        return (output,Some(pos));
+    } else {
+        let mut a: String<EDIT_LENGTH>;
+        match number_style {
+            DisplayStyle::E(sf) => {
+                let exponent: i32 = 1 + libm::log10(*number).floor() as i32;
+                let mut before_dp = exponent % 3;  // This gives everything powers for 10^3, 10^-3, etc
+
+                if before_dp ==0 {before_dp=3}; 
+                if before_dp<0 {
+                    before_dp=3+before_dp
+                };
+                let exp = exponent - before_dp;
+
+                let n = (*number/(10.0_f64).powi(exponent-sf)).trunc()/10_f64.powi(sf-before_dp);
+                // 1. the cutting off of the number to the correct number of significant figures
+                // Leaves exp
+                // if exp == 0
+
+                // info!("--- {}E{}", n, exp);     // This produces a different string
+                                                // to the format statement below,
+                                                // info! gives .0 if there are no non-zero decimals
+                                                // format just doesn't return no-zero decimals
+                a = String::from(format!("{}E{}", n, exp).unwrap());
+                // self.eline = Some(a.clone());
+
+                // sf here is the number of significant figures to display, 
+                // but it is being interpreted as the number of decimal places 
+                // so we need to fix this the number accordingly
+
+                // There's an issue that if the number is an exact integer,
+                // it only has one place after the decimal: a zero. We need to 
+                // add more zeroes to show the full sig figs.
+                
+                // This comes down to subtracting the length of a from sf+1
+                // and adding that many zeroes
+                // Example: 
+                // 100.0
+                //.  that's character length 5, sf we want is 5,  so (sf+1)-len = 6-5 =
+                // add one zero.
+
+                let p = a.find("E").unwrap(); // must succeed, defined two lines above
+                // info!("Found E at {}",p);
+                    
+                if !a.contains("."){
+                    let required = sf+2 - a.len() as i32;
+                    for _i in 0..required {
+                        a.insert(p,'0').unwrap();
+                    }
+                    a.insert(p, '.').unwrap();
+                } 
+
+                let mut b: String<EDIT_LENGTH>=String::new();
+                let mut e_pos: Option<i32> = None;
+                // info!("Contains E");
+                for (l, c) in a.chars().enumerate(){
+                    if c == 'E' {
+                        b.push(' ').unwrap();
+                        e_pos = Some(l.try_into().unwrap());
+                    } else {
+                        b.push(c).unwrap();
+                    }
+                }   
+                return(b, e_pos)       
+            },
+            DisplayStyle::_S(_sf) => {
+                return(format!("Not implemented").unwrap(), None)
+            },
+            DisplayStyle::_FIXED => {
+                return(format!("Not implemented").unwrap(), None)
+            },
+            DisplayStyle::_ALL => { 
+                return(format!("Not implemented").unwrap(), None)
+            }
+
+        }
+    }
+}
+
 
 // ZERO OUT the input string when enter is hit
