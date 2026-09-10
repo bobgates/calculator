@@ -11,6 +11,7 @@
 
 
 use defmt::info;
+use embassy_rp::pio::program::InSource::X;
 use core::f64;//, todo};
 use core::fmt::Write;
 use display_interface_spi::SPIInterface;
@@ -35,6 +36,7 @@ use st7565::modes::GraphicsMode;
 
 use crate::stack::Stack;
 use crate::State::Calculating;
+use crate::XLine::Number;
 use num_traits::float::FloatCore;
 
 const NUMBER_BOTTOM: i32 = 62;
@@ -74,16 +76,34 @@ pub enum DisplayLine{
 
 // If Text is some, then only three lines
 // of numbers used.
-enum XLine {
+#[derive(Clone, Debug)]
+pub enum XLine {
     Number(f64),
-    Text(Option<String<EDIT_LENGTH>>),
+    XText(Option<String<EDIT_LENGTH>>),
 }
 
-struct StackView{
-    yzt: [f64;3],
-    x:XLine,
+#[derive(Clone, Debug)]
+pub struct StackView{
+    pub x:XLine,
+    pub yzt: [f64;3],
+    pub ds:DisplayStyle,
 }
+
+// use crate::XLine::XText;
+
 impl StackView{
+    pub fn new( x: XLine, yzt: [f64;3])->StackView {
+        StackView{
+            x,
+            yzt,
+            ds: DisplayStyle::E(4),
+        }
+    }
+
+    pub fn set_format(mut self, d: DisplayStyle) {
+        self.ds = d;
+    }
+
     pub fn get_all(self)->(XLine, f64,f64,f64){
 // If XLine is number, convert via num_to_string
 // If XLine is text, just go and use it.
@@ -91,14 +111,10 @@ impl StackView{
         (XLine::Number(123.45),
             self.yzt[0], self.yzt[1], self.yzt[2])
     }
-// Do we avoid unecessary conversions, or is this
-// premature optimisation?
-
-
 }
 
 // #[derive(EnumSetType, Debug, Format)]
-// #[derive(Clone)]
+// #[derive(Copy)]
 pub struct DisplayStruct <'a>{
     pub display: ST7565<SPIInterface<embassy_embedded_hal::shared_bus::blocking::spi::SpiDeviceWithConfig<'a, NoopRawMutex, embassy_rp::spi::Spi<'a, SPI0, embassy_rp::spi::Blocking>, Output<'a>>, Output<'a>>, DOGL128_6, GraphicsMode<'a, 128, 8>, 128, 64, 8>,
     reset_pin: Output<'a>,
@@ -108,7 +124,7 @@ pub struct DisplayStruct <'a>{
     number_style: DisplayStyle,
     eline : Option<String<EDIT_LENGTH>>,
     state: crate::State,
-    stack_view: StackView,
+    pub stack_view: StackView,
 }
 
 impl <'a> DisplayStruct <'a>{
@@ -129,6 +145,8 @@ info!("_____________________");
 
         display.flush().unwrap();       // Flushes internal buffer to the display
 
+            // let stack_view = StackView::new(Number(0.0),[0.0; 3] );
+
         Self { 
             display, 
             reset_pin,
@@ -146,7 +164,9 @@ info!("_____________________");
    // and returns the position of the 'E' if it is present
 
     
-    
+    pub fn set_number_style(&mut self, ds: DisplayStyle){
+        self.number_style = ds;
+    }
 
     pub fn set_on(&mut self, on: bool) {
 
@@ -159,36 +179,85 @@ info!("_____________________");
     }
 
 
-    pub fn 
-
-
 
     // Updates the display with the current stack values and the current entry line
     // if it is active, or stack x value if it is not.
     pub fn update_stack_display(&mut self, entry_line: Option<String<EDIT_LENGTH>>) {
         
         let display_style: DisplayStyle = DisplayStyle::E(4);
+        self.stack_view.clone().set_format(display_style);
+
+        let (x, y, z, t) = self.stack_view.clone().get_all();   
         
-        self.display.clear(BinaryColor::Off);
+        let mut text: bool = false;
 
-        if entry_line.is_some{
+        // let line: String<EDIT_LENGTH>  = match x {
+        //     Number(n)=> {num_to_string(display_style, &n).unwrap()},
+        //     XText(t )  => { if t.is_some(){
+        //                                                         t.unwrap();
+        //                                                    } else {
+        //                                                     String::new();
+        //                                                    }
+        //                                                 }
+        // };                // This seems to work
+        //
+        // if entry_line.is_some(){
+        //     // WORK HERE. Put the processing for the string to get printed here
 
-        } else {
+        // } else {
+        //     // Just do for x what you're already doing to y, z, t
+        // }
 
-        }
+        let (x, y, z, t) = self.stack_view.clone().get_all();                   // This seems to work
+        info!("In display.update_stack_display - y: {}, z: {}, t: {}", y, z, t);
+        
+        let mut e_pos = Some(0);
 
-        let (x, y, z, t) = self.stack_view.get_all();                   // This seems to work
-        info!("In display.update_stack_display - x: {}, y: {}, z: {}, t: {}", x, y, z, t);
-        info!("entry_line:");
-        if entry_line.is_some(){
-            for i in entry_line.clone().unwrap().chars() {
-                info!("{}",i);
-            }
-        } else {
-            info!("empty");
-        }
-        let mut outstr: String<EDIT_LENGTH>=String::new();
-        let mut e_pos: Option<i32> = None;
+        let (x_str, epos) = match x {
+            XLine::Number(n) => num_to_string(self.number_style, &n),
+            XLine::XText(t) =>  match t {
+                Some(t) => {(t, e_pos)},
+                None => { let s: String<EDIT_LENGTH>=String::new(); 
+                            (s, None)
+                        },
+            },
+        };
+
+// Given text t above, we want to validate it as a number and then
+// drop down below and insert the text into the stack 0 position.
+// Maybe follow one line, say
+
+
+        // let mut e_pos=
+        // let x_str = match x {
+        //     XLine::Number(n) => num_to_string(self.number_style, &n),
+        //     XLine::Text(t) => match(t) {
+        //         Some(n) => n,
+        //         None    => None,
+        //     },  
+        // };     
+
+        // let (x_buffer_str, xe_pos) =   num_to_string(display_style,&x_str);     
+        
+
+        // let (y_buffer_str, ye_pos) = num_to_string(display_style, &y);
+        // self.draw_one_line(Some(outstr.clone()), e_pos, DisplayLine::X);
+        
+
+
+
+
+
+        // info!("entry_line:");
+        // // if entry_line.is_some(){
+        // //     for i in entry_line.clone().unwrap().chars() {
+        // //         info!("{}",i);
+        // //     }
+        // // } else {
+        // //     info!("empty");
+        // // }
+        // let mut outstr: String<EDIT_LENGTH>=String::new();
+        // let mut e_pos: Option<i32> = None;
 
         // Why is this here? (t_buffer?)
 
@@ -198,50 +267,50 @@ info!("_____________________");
         // let _ = Text::new(&t_buffer_str, Point::new(NUM_LEFT, T_NUM_BOTTOM), self.font).draw(&mut self.display);
 
         
-        let  (outstr, e_pos) = 
-            if entry_line.is_none(){
-                info!("Update stack display: No entry line, so display x: {}", x);
-                num_to_string(display_style,&x)
-            } else {
-                info!("Update stack display with an entry line:");
+        // let  (outstr, e_pos) = 
+        //     if entry_line.is_none(){
+        //         // info!("Update stack display: No entry line, so display x: {}", x);
+        //         num_to_string(display_style,&x)
+        //     } else {
+        //         info!("Update stack display with an entry line:");
 
-                for (l, c) in entry_line.unwrap().chars().enumerate(){
-                    info!("Key is {}",c);
+        //         for (l, c) in entry_line.unwrap().chars().enumerate(){
+        //             info!("Key is {}",c);
 
-                    if c == '.' {
-                        outstr.push('.').unwrap();
-                    } else if c == '-' {
-                        outstr.push('-').unwrap();      // Needs check for E
-                    } else if c.is_ascii_digit() {
-                        outstr.push(c).unwrap();
-                    } else if c == 'E' {                // Set epos
-                        if outstr.len() == 0 {
-                            outstr.push('0').unwrap();           // e is second char after the 1 at loc 0
-                        } else {                         
-                            e_pos = Some(l.try_into().unwrap()); //or e is where we are in the loop over l
-                        }
-                        outstr.push(' ').unwrap(); // don't forget to return the E!
-                    } else {
-                        info!("--- Not processed in entry_line: key is {}", c);
-                        outstr.push(c).unwrap();  
-                    }  
-                }
-                for a in outstr.chars() {
-                    info!("entry_line, outstr.chars: = {}", a);
-                }
-                info!("epos = {}",e_pos);
-                (outstr, e_pos)
-            }; 
+        //             if c == '.' {
+        //                 outstr.push('.').unwrap();
+        //             } else if c == '-' {
+        //                 outstr.push('-').unwrap();      // Needs check for E
+        //             } else if c.is_ascii_digit() {
+        //                 outstr.push(c).unwrap();
+        //             } else if c == 'E' {                // Set epos
+        //                 if outstr.len() == 0 {
+        //                     outstr.push('0').unwrap();           // e is second char after the 1 at loc 0
+        //                 } else {                         
+        //                     e_pos = Some(l.try_into().unwrap()); //or e is where we are in the loop over l
+        //                 }
+        //                 outstr.push(' ').unwrap(); // don't forget to return the E!
+        //             } else {
+        //                 info!("--- Not processed in entry_line: key is {}", c);
+        //                 outstr.push(c).unwrap();  
+        //             }  
+        //         }
+        //         for a in outstr.chars() {
+        //             info!("entry_line, outstr.chars: = {}", a);
+        //         }
+        //         info!("epos = {}",e_pos);
+        //         (outstr, e_pos)
+        //     }; 
     
 
-        let (y_buffer_str, ye_pos) = num_to_string(display_style, &y);
-        let (z_buffer_str, ze_pos) = num_to_string(display_style, &z);
-        let (t_buffer_str, te_pos) = num_to_string(display_style, &t);
+        // let (y_buffer_str, ye_pos) = num_to_string(display_style, &y);
+        // let (z_buffer_str, ze_pos) = num_to_string(display_style, &z);
+        // let (t_buffer_str, te_pos) = num_to_string(display_style, &t);
 
-        self.draw_one_line(Some(outstr.clone()), e_pos, DisplayLine::X);
-        self.draw_one_line(Some(y_buffer_str), ye_pos, DisplayLine::Y);
-        self.draw_one_line(Some(z_buffer_str), ze_pos, DisplayLine::Z);
-        self.draw_one_line(Some(t_buffer_str), te_pos, DisplayLine::T);
+        self.draw_one_line(Some(x_str.clone()), e_pos, DisplayLine::X);
+        // self.draw_one_line(Some(y_buffer_str), ye_pos, DisplayLine::Y);
+        // self.draw_one_line(Some(z_buffer_str), ze_pos, DisplayLine::Z);
+        // self.draw_one_line(Some(t_buffer_str), te_pos, DisplayLine::T);
 
     
         self.display.flush().unwrap();       // Flushes internal buffer to the display

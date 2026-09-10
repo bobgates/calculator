@@ -25,6 +25,7 @@ use display::DisplayStruct;
 use display::DisplayStyle;
 use display::DisplayLine;
 use display_interface_spi::SPIInterface;
+use display::{XLine, StackView};
 
 use embassy_embedded_hal::shared_bus::blocking::spi::SpiDeviceWithConfig;
 use embassy_executor::Spawner;
@@ -117,7 +118,9 @@ async fn main (_spawner: Spawner) {
     let display_spi=SpiDeviceWithConfig::new(&spi_bus, Output::new(p.PIN_21, Level::High), display_config);
     let display_interface: SPIInterface<SpiDeviceWithConfig<'_, NoopRawMutex, Spi<'_, SPI0, Blocking>, Output<'_>>, Output<'_>> = SPIInterface::new(display_spi, a0);
     let mut page_buffer = GraphicsPageBuffer::new();
-    let display: ST7565<SPIInterface<embassy_embedded_hal::shared_bus::blocking::spi::SpiDeviceWithConfig<'_, NoopRawMutex, embassy_rp::spi::Spi<'_, SPI0, embassy_rp::spi::Blocking>, Output<'_>>, Output<'_>>, DOGL128_6, GraphicsMode<'_, 128, 8>, 128, 64, 8> = st7565::ST7565::new(display_interface, DOGL128_6)
+    let display: ST7565<SPIInterface<embassy_embedded_hal::shared_bus::blocking::spi::SpiDeviceWithConfig<'_, NoopRawMutex, embassy_rp::spi::Spi<'_, 
+                SPI0, embassy_rp::spi::Blocking>, Output<'_>>, Output<'_>>, DOGL128_6, GraphicsMode<'_, 128, 8>, 128, 64, 8> 
+                = st7565::ST7565::new(display_interface, DOGL128_6)
         .into_graphics_mode(&mut page_buffer);       
     let reset_pin = Output::new(p.PIN_28, Level::Low);
     // let font = MonoTextStyle::new(&FONT_9X18, BinaryColor::On);
@@ -128,7 +131,15 @@ async fn main (_spawner: Spawner) {
     let e_font = MonoTextStyle::new(&FONT_6X10, BinaryColor::On);
     let number_style = DisplayStyle::E(4);
   
+    let mut x = XLine::Number(1.0);
+    let mut stack_view = StackView::new(
+        XLine::Number(123.45),
+        [0.113456, 2345.67, 89011.],
+    );
+
     let mut stack = Stack::new();
+    // };
+
 
     let mut display = DisplayStruct::new(
         display, //: ST7565<SPIInterface<embassy_embedded_hal::shared_bus::blocking::spi::SpiDeviceWithConfig<'a, NoopRawMutex, embassy_rp::spi::Spi<'a, SPI0, embassy_rp::spi::Blocking>, Output<'a>>, Output<'a>>, DOGL128_6, GraphicsMode<'a, 128, 8>, 128, 64, 8>,
@@ -137,7 +148,7 @@ async fn main (_spawner: Spawner) {
         stacknames_font, //: MonoTextStyle<'a, BinaryColor>,
         e_font, //: MonoTextStyle<'a, BinaryColor>,
         number_style,
-        & mut stack
+        stack_view
     );
 
     display.set_on(true);
@@ -166,10 +177,13 @@ async fn main (_spawner: Spawner) {
     );
 
     let mut state: State = State::Calculating;
-    let mut line_edit = LineEdit::new();
+    // let mut line_edit = LineEdit::new();
     let mut calculate : Calculate = Calculate::new(&mut stack); 
 
-    let _number_style =  DisplayStyle::E(3);
+    display.set_number_style(DisplayStyle::E(3));
+    
+    // display.stack_view.set_format(DisplayStyle::E(3));
+    let mut line_edit = LineEdit::new();
     display.update_stack_display(None);
 // ******************************************************************************************** //
     loop{
