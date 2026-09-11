@@ -132,9 +132,11 @@ async fn main (_spawner: Spawner) {
     let number_style = DisplayStyle::E(4);
   
     let mut x = XLine::Number(1.0);
+    let mut x_str = String::<EDIT_LENGTH>::new();
+    x_str.push_str("ABC").unwrap();
     let mut stack_view = StackView::new(
-        XLine::Number(123.45),
-        [0.113456, 2345.67, 89011.],
+        Some(x_str),
+        [0.113456, 2345.67, 89011., 123456.789],
     );
 
     let mut stack = Stack::new();
