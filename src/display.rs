@@ -91,17 +91,17 @@ impl StackView{
         }
     }
 
-    pub fn set_format(mut self, ds: DisplayStyle) {
+    pub fn set_format(&mut self, ds: DisplayStyle) {
         self.ds = ds;
     }
 
-    pub fn set_all(mut self, a: Option<String<EDIT_LENGTH>>, xyzt: [f64; 4]) {
+    pub fn set_all(&mut self, a: Option<String<EDIT_LENGTH>>, xyzt: [f64; 4]) {
         self.x_str = a;
         self.xyzt = xyzt;
     }
 
-    pub fn get_all(self)->StackView{
-        self
+    pub fn get_all(&self)->StackView{
+        self.clone()
     }
 }
 
@@ -172,24 +172,35 @@ info!("_____________________");
 
     // Updates the display with the current stack values and the current entry line
     // if it is active, or stack x value if it is not.
-    pub fn update_stack_display(&mut self, entry_line: &Option<String<EDIT_LENGTH>>) {
+    pub fn update_stack_display(&mut self, entry_line: Option<String<EDIT_LENGTH>>) {
         
         self.stack_view.set_format(DisplayStyle::E(4));
 
         let sv = self.stack_view.get_all();
+        let y_str = num_to_string(sv.ds, &sv.xyzt[1]);
+        let z_str = num_to_string(sv.ds, &sv.xyzt[2]);
+        let t_str = num_to_string(sv.ds, &sv.xyzt[3]);
+self.draw_one_line(y_str, None, DisplayLine::Y );
 
 
 
-        if sv.x_str.is_some() {
-            self.draw_one_line(Some(sv.x_str.unwrap()), None, DisplayLine::X);
+        // let mut x_str: String<EDIT_LENGTH> = String::new();
+        let mut epos: Option<i32> = None;
+        if entry_line.is_some(){ // We have a string already
+            // let e = entry_line.unwrap();
+
+            let x_str:String<EDIT_LENGTH> = entry_line.unwrap();
+            let mut epos: Option<i32> = None; 
+            for (e_num, c) in x_str.chars().enumerate(){
+                if c == 'E' {
+                    epos = Some(e_num as i32);
+                }
+            }
+            // let (x_str: String<EditLength>, epos) = 
+            self.draw_one_line(Some(x_str), epos, DisplayLine::X );
         } else {
-            self.draw_one_line(*entry_line, None, DisplayLine::X);
+            num_to_string(sv.ds, &sv.xyzt[0]);
         }
-        self.draw_one_line(*entry_line, None, DisplayLine::Y);
-        self.draw_one_line(*entry_line, None, DisplayLine::Z);
-        self.draw_one_line(*entry_line, None, DisplayLine::Z);
- 
-
         self.display.flush().unwrap();       // Flushes internal buffer to the display
 
     }
@@ -228,8 +239,7 @@ info!("_____________________");
     
         info!("\nIn display.draw_one_line, target is {}", target_line);
 
-        let output_line = entry_line.clone();
-        let output_line = output_line.unwrap();
+        let output_line = entry_line.clone().unwrap();
         
         info!("entry line is:");
         for (i, c) in output_line.chars().enumerate(){
@@ -246,7 +256,7 @@ info!("_____________________");
         // let mut none_line = String::<EDIT_LENGTH>::new();
         // let _ = write!(none_line, "none line");
         
-
+// CHANGE: take this out - check for e_pos locally
         // HERE: replace the e in entry_line with a space
         if e_pos.is_some(){
             info!("e_pos is {}", e_pos);
@@ -262,6 +272,8 @@ info!("_____________________");
         if e_pos.is_some() {
             let _ = Text::new("E", Point::new(NUM_LEFT + NUM_WIDTH * e_pos.unwrap() + 3, number_bottom-2), self.e_font).draw(&mut self.display);
         }
+        self.update_stack_display(None);
+        self.display.flush().unwrap();
         // Put back the e
         Self::replace_letter(&Some(line), ' ', 'E');
         

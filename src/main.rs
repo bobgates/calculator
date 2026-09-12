@@ -25,7 +25,7 @@ use display::DisplayStruct;
 use display::DisplayStyle;
 use display::DisplayLine;
 use display_interface_spi::SPIInterface;
-use display::{XLine, StackView};
+use display::StackView;
 
 use embassy_embedded_hal::shared_bus::blocking::spi::SpiDeviceWithConfig;
 use embassy_executor::Spawner;
@@ -131,17 +131,17 @@ async fn main (_spawner: Spawner) {
     let e_font = MonoTextStyle::new(&FONT_6X10, BinaryColor::On);
     let number_style = DisplayStyle::E(4);
   
-    let mut x = XLine::Number(1.0);
+    // let mut x = XLine::Number(1.0);
     let mut x_str = String::<EDIT_LENGTH>::new();
     x_str.push_str("ABC").unwrap();
+    
+    
     let mut stack_view = StackView::new(
         Some(x_str),
         [0.113456, 2345.67, 89011., 123456.789],
     );
 
     let mut stack = Stack::new();
-    // };
-
 
     let mut display = DisplayStruct::new(
         display, //: ST7565<SPIInterface<embassy_embedded_hal::shared_bus::blocking::spi::SpiDeviceWithConfig<'a, NoopRawMutex, embassy_rp::spi::Spi<'a, SPI0, embassy_rp::spi::Blocking>, Output<'a>>, Output<'a>>, DOGL128_6, GraphicsMode<'a, 128, 8>, 128, 64, 8>,
@@ -186,7 +186,7 @@ async fn main (_spawner: Spawner) {
     
     // display.stack_view.set_format(DisplayStyle::E(3));
     let mut line_edit = LineEdit::new();
-    display.update_stack_display(None);
+    // display.update_stack_display(None);
 // ******************************************************************************************** //
     loop{
         //100E6 is about once per second
@@ -241,7 +241,7 @@ async fn main (_spawner: Spawner) {
                     info!("State: calculating - key is: {}", key);
                     if ENTER_AND_EDIT_ENTRY_MODE.contains(key){
                         state = State::Entry; info!("Change state to Entry.......");
-                        display.update_stack_display(line_edit.process_number_keys(key));
+                        // display.update_stack_display(line_edit.process_number_keys(key));
                         info!("In calculating, setting global: state to Entry for: {}", key);
                         // This is also displayed on the LCD screen
                     } else {
@@ -251,5 +251,6 @@ async fn main (_spawner: Spawner) {
                 },
             }
         }
+        display.update_stack_display(None);
     }
 }
