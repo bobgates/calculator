@@ -1,20 +1,18 @@
-// Who knows? 
-
 use defmt::info;
 
 use crate::keyboard::KeyName;
-use crate::stack::Stack;
+// use crate::stack::Stack;
 
-pub struct Calculate <'a>{
-    stack: &'a mut Stack,
+pub struct Calculate {//<'a>{
+    // stack: &'a mut Stack,
 }
 
-impl <'a> Calculate <'a>{
+impl Calculate {
 
-    pub fn new(stack_ref: &'a mut Stack,)->Self{
+    pub fn new()->Self{
         info!("creating stack");
         Self {
-            stack: stack_ref,
+            // stack: stack_ref,
         }
     }
 

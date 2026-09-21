@@ -12,17 +12,17 @@ cortex-m-rt = "0.7.5"
 st7565 = { path = "../st7565" }
 
 # Panic handler
-panic-probe = { version = "1.0.0", features = ["print-defmt"] }
+panic-probe = { version = "1.0.0", default-features = false, features = ["print-defmt"] }
 
 # Embassy
-embassy-executor = { version = "0.9", features = [
+embassy-executor = { version = "0.9", default-features = false, features = [
   "arch-cortex-m", 
   "executor-thread", 
   "defmt"
 ] }
 
 embassy-time = "0.5.1"
-embassy-rp = { version = "0.10.0", features = [
+embassy-rp = { version = "0.10.0", default-features = false, features = [
   "defmt",
   "time-driver",
   "critical-section-impl",
@@ -48,9 +48,13 @@ enumset = "1.1.14"
 enum_dispatch = "0.3.13"
 embassy-hal-internal = "0.5.0"
 profont = "0.7.0"
+portable-atomic = { version = "1.15.0", default-features = false, features = ["float"]}    #  "unsafe-assume-single-core"]}
+no-std-compat2 = {version="0.4.5"}
+
 
 
 
 [[bin]]
 name = "calculator"    # Takes away an error about test, which doesn't
 harness = false        # work in nostd
+

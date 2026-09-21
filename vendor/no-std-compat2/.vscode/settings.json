@@ -1,0 +1,5 @@
+{
+    "rust-analyzer.linkedProjects": [
+        ".\\example-crates\\liballoc\\Cargo.toml"
+    ]
+}

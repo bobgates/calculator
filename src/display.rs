@@ -11,9 +11,9 @@
 
 
 use defmt::info;
-use embassy_rp::pio::program::InSource::X;
+// use embassy_rp::pio::program::InSource::X;
 use core::f64;//, todo};
-use core::fmt::Write;
+// use core::fmt::Write;
 use display_interface_spi::SPIInterface;
 
 use embassy_rp::gpio::Output;
@@ -34,7 +34,7 @@ use st7565::displays::DOGL128_6;
 pub use st7565::ST7565;
 use st7565::modes::GraphicsMode;
 
-use crate::stack::Stack;
+// use crate::stack::Stack;
 use crate::State::Calculating;
 // use crate::XLine::Number;
 use num_traits::float::FloatCore;
@@ -73,7 +73,16 @@ pub enum DisplayLine{
     Z,
     T,
 }
-
+impl DisplayLine {
+    fn to_letter(self, input: DisplayLine)->char{
+        match input {
+            DisplayLine::T => 'T',
+            DisplayLine::Z => 'Z',
+            DisplayLine::Y => 'Y',
+            DisplayLine::X => 'X',
+        }
+    }
+}
 
 #[derive(Clone, Debug)]
 pub struct StackView{
@@ -177,27 +186,15 @@ info!("_____________________");
         self.stack_view.set_format(DisplayStyle::E(4));
 
         let sv = self.stack_view.get_all();
-        let y_str = num_to_string(sv.ds, &sv.xyzt[1]);
-        let z_str = num_to_string(sv.ds, &sv.xyzt[2]);
-        let t_str = num_to_string(sv.ds, &sv.xyzt[3]);
-self.draw_one_line(y_str, None, DisplayLine::Y );
-
-
+        let _y_str = num_to_string(sv.ds, &sv.xyzt[1]);
+        let _z_str = num_to_string(sv.ds, &sv.xyzt[2]);
+        let _t_str = num_to_string(sv.ds, &sv.xyzt[3]);
 
         // let mut x_str: String<EDIT_LENGTH> = String::new();
-        let mut epos: Option<i32> = None;
+        // let mut epos: Option<i32> = None;
         if entry_line.is_some(){ // We have a string already
-            // let e = entry_line.unwrap();
-
             let x_str:String<EDIT_LENGTH> = entry_line.unwrap();
-            let mut epos: Option<i32> = None; 
-            for (e_num, c) in x_str.chars().enumerate(){
-                if c == 'E' {
-                    epos = Some(e_num as i32);
-                }
-            }
-            // let (x_str: String<EditLength>, epos) = 
-            self.draw_one_line(Some(x_str), epos, DisplayLine::X );
+            self.draw_one_line(Some(x_str), DisplayLine::X );
         } else {
             num_to_string(sv.ds, &sv.xyzt[0]);
         }
@@ -205,7 +202,7 @@ self.draw_one_line(y_str, None, DisplayLine::Y );
 
     }
 
-
+    // Takes a option so that it'll work on empty strings.
     pub fn replace_letter(entry_line: &Option<String<EDIT_LENGTH>>, letter_out: char, letter_in: char)->Option<String<EDIT_LENGTH>>{
         let mut out:String<EDIT_LENGTH> = String::new();
         if entry_line.is_none(){
@@ -223,26 +220,17 @@ self.draw_one_line(y_str, None, DisplayLine::Y );
     }
   
 
-    pub fn draw_one_line(&mut self, entry_line: Option<String<EDIT_LENGTH>>, e_pos: Option<i32>, target: DisplayLine){ 
+    pub fn draw_one_line(&mut self, entry_line: Option<String<EDIT_LENGTH>>, target: DisplayLine){ 
   
         if entry_line.is_none(){
             info!("entry_line is none in dislay.draw_one_line");
             return;
         }
 
-        let target_line = match target {
-            DisplayLine::X => {'X'},
-            DisplayLine::Y => {'Y'},
-            DisplayLine::Z => {'Z'},
-            DisplayLine::T => {'T'},        
-        }; 
-    
-        info!("\nIn display.draw_one_line, target is {}", target_line);
-
-        let output_line = entry_line.clone().unwrap();
+        let line = entry_line.clone().unwrap();
         
         info!("entry line is:");
-        for (i, c) in output_line.chars().enumerate(){
+        for (i, c) in line.chars().enumerate(){
             info!("{}-{}", i,c);
         }
 
@@ -253,28 +241,26 @@ self.draw_one_line(y_str, None, DisplayLine::Y );
             DisplayLine::T => {("t", LABEL_BOTTOM - 3*LINE_SPACING, NUMBER_BOTTOM - 3*LINE_SPACING)},
         };
 
-        // let mut none_line = String::<EDIT_LENGTH>::new();
-        // let _ = write!(none_line, "none line");
-        
-// CHANGE: take this out - check for e_pos locally
-        // HERE: replace the e in entry_line with a space
+        // Replace the e in entry_line with a space
+        let mut e_pos: Option<i32> = None;
+        for (i, c) in line.chars().enumerate(){
+            if c=='E' {
+                e_pos = Some(i.try_into().unwrap());
+            };
+        }
         if e_pos.is_some(){
             info!("e_pos is {}", e_pos);
-            Self::replace_letter(&entry_line , 'E', ' ');
+            Self::replace_letter(&Some(line.clone()) , 'E', ' ');
         }   
 
-        let line = entry_line.unwrap();
-
-        // let x_buffer_str = entry_line.clone().unwrap();;
+        // let line = line.clone();
         let _= Text::new(letter, Point::new(NAME_LEFT, label_bottom), self.stack_names_font).draw(&mut self.display);
         let _ = Text::new(":", Point::new(COLON_LEFT, label_bottom), self.stack_names_font).draw(&mut self.display);
-        let _ = Text::new(&line, Point::new(NUM_LEFT, number_bottom), self.font).draw(&mut self.display);
+        let _ = Text::new(&line.clone(), Point::new(NUM_LEFT, number_bottom), self.font).draw(&mut self.display);
         if e_pos.is_some() {
             let _ = Text::new("E", Point::new(NUM_LEFT + NUM_WIDTH * e_pos.unwrap() + 3, number_bottom-2), self.e_font).draw(&mut self.display);
         }
-        self.update_stack_display(None);
-        self.display.flush().unwrap();
-        // Put back the e
+
         Self::replace_letter(&Some(line), ' ', 'E');
         
     }
