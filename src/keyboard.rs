@@ -93,11 +93,11 @@ static ROW_COL_MAP: [[KeyName; 6]; 8] = [
 
 // }
 
-trait PinControl {
-    fn set_pin(&mut self);
-    fn clear_pin(&mut self);
-    fn set_pin_value(&mut self, set: bool);
-}
+// trait PinControl {
+//     fn set_pin(&mut self);
+//     fn clear_pin(&mut self);
+//     fn set_pin_value(&mut self, set: bool);
+// }
 
 
 

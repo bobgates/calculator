@@ -85,15 +85,15 @@ impl DisplayLine {
 }
 
 #[derive(Clone, Debug)]
-pub struct StackView{
+pub struct DisplayStackView{
     pub x_str: Option<String<EDIT_LENGTH>>,
     pub xyzt: [f64;4],
     pub ds:DisplayStyle,
 }
 
-impl StackView{
-    pub fn new( x: Option<String<EDIT_LENGTH>>, xyzt: [f64;4])->StackView {
-        StackView{
+impl DisplayStackView{
+    pub fn new( x: Option<String<EDIT_LENGTH>>, xyzt: [f64;4])->DisplayStackView {
+        DisplayStackView{
             x_str: x,
             xyzt,
             ds: DisplayStyle::E(4),
@@ -109,7 +109,7 @@ impl StackView{
         self.xyzt = xyzt;
     }
 
-    pub fn get_all(&self)->StackView{
+    pub fn get_all(&self)->DisplayStackView{
         self.clone()
     }
 }
@@ -125,7 +125,7 @@ pub struct DisplayStruct <'a>{
     number_style: DisplayStyle,
     eline : Option<String<EDIT_LENGTH>>,
     state: crate::State,
-    pub stack_view: StackView,
+    pub stack_view: DisplayStackView,
 }
 
 impl <'a> DisplayStruct <'a>{
@@ -136,7 +136,7 @@ impl <'a> DisplayStruct <'a>{
                 e_font: MonoTextStyle<'a, BinaryColor>,
                 number_style: DisplayStyle,
                 // stack_ref: &'a mut Stack,
-                stack_view: StackView,
+                stack_view: DisplayStackView,
             ) -> Self {
         
         display.reset(&mut reset_pin, &mut Delay).unwrap();

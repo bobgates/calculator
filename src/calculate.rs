@@ -9,6 +9,10 @@ pub struct Calculate {//<'a>{
 
 impl Calculate {
 
+// Okay - figure out how to get reference to the stack here so
+// that calculations can be applied.
+
+
     pub fn new()->Self{
         info!("creating stack");
         Self {

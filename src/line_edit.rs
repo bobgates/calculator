@@ -50,7 +50,6 @@ pub struct LineEdit{
 
 }
 
-
 impl LineEdit{//<'_>{
     pub fn new()->LineEdit{ 
         let line = String::<EDIT_LENGTH>::new(); 
