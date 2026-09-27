@@ -183,29 +183,26 @@ info!("_____________________");
     // if it is active, or stack x value if it is not.
     pub fn update_stack_display(&mut self, entry_line: Option<String<EDIT_LENGTH>>) {
         
+                self.display.clear(BinaryColor::Off);        
+
         self.stack_view.set_format(DisplayStyle::E(4));
 
         let sv = self.stack_view.get_all();
-        let y_str = num_to_string(sv.ds, &sv.xyzt[1]).0;
-        self.draw_one_line(Some(y_str), DisplayLine::Y );            
-        let z_str = num_to_string(sv.ds, &sv.xyzt[2]).0;
-        self.draw_one_line(Some(z_str), DisplayLine::Z );            
-        let t_str = num_to_string(sv.ds, &sv.xyzt[3]).0;
-        self.draw_one_line(Some(t_str), DisplayLine::T );            
+        let (y_str, e_pos) = num_to_string(sv.ds, &sv.xyzt[1]);
+        self.draw_one_line(Some(y_str), e_pos, DisplayLine::Y );            
+        let (z_str, e_pos) = num_to_string(sv.ds, &sv.xyzt[2]);
+        self.draw_one_line(Some(z_str), e_pos, DisplayLine::Z );            
+        let (t_str, e_pos) = num_to_string(sv.ds, &sv.xyzt[3]);
+        self.draw_one_line(Some(t_str), e_pos,DisplayLine::T );            
 
-        let x_str = 
+        let (x_str, e_pos) = 
         if entry_line.is_some(){ // We have a string already
-            entry_line.unwrap()
+            (entry_line.unwrap(), None)
         } else {
-            num_to_string(sv.ds, &sv.xyzt[0]).0
+            num_to_string(sv.ds, &sv.xyzt[0])
         };
-        // let x_str = 
-        // if entry_line.is_some(){ // We have a string already
-        //     entry_line.unwrap();
-        // } else {
-        //     num_to_string(sv.ds, &sv.xyzt[0]).0;
-        // };
-        self.draw_one_line(Some(x_str), DisplayLine::X );            
+
+        self.draw_one_line(Some(x_str), e_pos, DisplayLine::X );    
         self.display.flush().unwrap();       // Flushes internal buffer to the display
 
     }
@@ -228,7 +225,7 @@ info!("_____________________");
     }
   
 
-    pub fn draw_one_line(&mut self, entry_line: Option<String<EDIT_LENGTH>>, target: DisplayLine){ 
+    pub fn draw_one_line(&mut self, entry_line: Option<String<EDIT_LENGTH>>, e_pos: Option<i32>, target: DisplayLine){ 
   
         if entry_line.is_none(){
             info!("entry_line is none in dislay.draw_one_line");
@@ -250,12 +247,12 @@ info!("_____________________");
         };
 
         // Replace the e in entry_line with a space
-        let mut e_pos: Option<i32> = None;
-        for (i, c) in line.chars().enumerate(){
-            if c=='E' {
-                e_pos = Some(i.try_into().unwrap());
-            };
-        }
+        // let mut e_pos: Option<i32> = None;
+        // for (i, c) in line.chars().enumerate(){
+        //     if c=='E' {
+        //         e_pos = Some(i.try_into().unwrap());
+        //     };
+        // }
         if e_pos.is_some(){
             info!("e_pos is {}", e_pos);
             Self::replace_letter(&Some(line.clone()) , 'E', ' ');
@@ -337,9 +334,7 @@ pub fn num_to_string(number_style: DisplayStyle, number: &f64 )->(String<EDIT_LE
                 //.  that's character length 5, sf we want is 5,  so (sf+1)-len = 6-5 =
                 // add one zero.
 
-                let p = a.find("E").unwrap(); // must succeed, defined two lines above
-                // info!("Found E at {}",p);
-                    
+                let p = a.find("E").unwrap(); // must succeed, defined two lines above                 
                 if !a.contains("."){                                 // Formats numbers with zero after the
                     let required = sf+2 - a.len() as i32;       // decimal point to have sf zeroes 
                     for _i in 0..required {                     // after the decimal point
@@ -348,7 +343,7 @@ pub fn num_to_string(number_style: DisplayStyle, number: &f64 )->(String<EDIT_LE
                     a.insert(p, '.').unwrap();
                 } 
 
-                DisplayStruct ::replace_letter(&Some(a.clone()), 'E', ' ');
+                // DisplayStruct ::replace_letter(&Some(a.clone()), 'E', ' ');
 
                 let mut b: String<EDIT_LENGTH>=String::new();
                 let mut e_pos: Option<i32> = None;
