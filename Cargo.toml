@@ -43,6 +43,7 @@ embedded-graphics = "0.8.2"
 embedded-hal = "1.0.0"
 heapless = "0.9.3"
 num-traits = { version = "0.2", default-features = false, features = ["i128"] }
+# lazy_static = { version = "1.5.0", features = ["spin_no_std"] }
 libm = "0.2.16"
 enumset = "1.1.14"
 enum_dispatch = "0.3.13"

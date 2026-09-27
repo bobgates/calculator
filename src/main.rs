@@ -1,24 +1,11 @@
 #![no_std]
 #![no_main]
-extern crate alloc;
-// #![no_main]
-
-// mod alloc;
-// use alloc::SimpleAllocator;
-
-// #![feature(default_alloc_error_handler)]
-
 // extern crate alloc;
-// use alloc::alloc::
-// use alloc::vec::Vec;
-
-// use no_std_compat2::alloc::Allocator;
-
 
 mod calculate;
 use calculate::Calculate;   
 
-use core::alloc::{GlobalAlloc, Layout};
+// use core::alloc::{GlobalAlloc, Layout};
 use core::{cell::RefCell};
 // use core::{fmt::Display};
 // use core::mem::MaybeUninit;
@@ -42,7 +29,7 @@ use display::DisplayStruct;
 use display::DisplayStyle;
 // use display::DisplayLine;
 use display_interface_spi::SPIInterface;
-use display::DisplayStackView;
+// use display::DisplayStackView;
 
 use embassy_embedded_hal::shared_bus::blocking::spi::SpiDeviceWithConfig;
 use embassy_executor::Spawner;
@@ -56,13 +43,13 @@ use embassy_rp::spi;
 use embassy_rp::spi::{Blocking, Spi};// ClkPin, Config, MisoPin, MosiPin,
 
 
-use embassy_sync::blocking_mutex::Mutex;
-use embassy_sync::blocking_mutex::raw::NoopRawMutex;
-
 use embedded_graphics::mono_font::ascii::{FONT_6X10, FONT_7X13, FONT_9X18};//, ,FONT_10X20 FONT_9X18_BOLD};
 // use profont::PROFONT_14_POINT;
 use embedded_graphics::mono_font::MonoTextStyle;
 use embedded_graphics::pixelcolor::BinaryColor;
+
+use embassy_sync::blocking_mutex::Mutex;
+use embassy_sync::blocking_mutex::raw::NoopRawMutex;
 
 mod flash_led;
 use flash_led::FlashLed;
@@ -85,21 +72,32 @@ use st7565::displays::DOGL128_6;
 use st7565::ST7565;
 use st7565::modes::GraphicsMode;
 
-mod stack;
-use stack::Stack;
+// mod stack;
+// use stack::Stack;
+// pub struct Stack {
+//     entries: [f64; 4]//;// pub data: Rc<RefCell<[f64; STACK_DEPTH]>>,
+//     //    last_x: Rc<RefCell<f64>>,
+// }
+// impl Stack{
+//     pub fn new()->Stack{
+//         Stack {
+//             entries: [0.0; 4],
+//         }
+//     }
+// }
 
-struct StubAllocator;
-unsafe impl GlobalAlloc for StubAllocator {
-    unsafe fn alloc(&self, _layout: Layout ) -> *mut u8 {
-        null_mut()
-    }
-    unsafe fn dealloc(&self, _ptr: *mut u8, _layout: Layout){
-        //Stub no-op
-    }
-}
+// struct StubAllocator;
+// unsafe impl GlobalAlloc for StubAllocator {
+//     unsafe fn alloc(&self, _layout: Layout ) -> *mut u8 {
+//         null_mut()
+//     }
+//     unsafe fn dealloc(&self, _ptr: *mut u8, _layout: Layout){
+//         //Stub no-op
+//     }
+// }
 
-#[global_allocator] // Dummy, but has to be here for the system to work
-static ALLOCATOR: StubAllocator = StubAllocator;
+// #[global_allocator] // Dummy, but has to be here for the system to work
+// static ALLOCATOR: StubAllocator = StubAllocator;
 
 
 use {defmt_rtt as _, panic_probe as _};
@@ -129,19 +127,13 @@ pub enum State {
 #[embassy_executor::main]
 async fn main (_spawner: Spawner) {
     let p = embassy_rp::init(Default::default());
+    // let mut stack: Stack = Stack::new();
 
     // Give a quick flash on the RP2350 LED to show that the device is alive.
     let pico_led = Output::new(p.PIN_25, Level::High);
     let mut flash_led = FlashLed::new(pico_led, 20_000_000);
     flash_led.flash();
 
-    // let clk = p.PIN_18;
-    // let mosi = p.PIN_19;
-    // let miso  = p.PIN_20;
-    // let display_cs = p.PIN_21;
-
-    // let reset  = p.PIN_28;
-    // let a0 = p.PIN_27;
     let a0 = Output::new(p.PIN_27, Level::Low);   
     let display_config = spi::Config::default();
 
@@ -164,12 +156,14 @@ async fn main (_spawner: Spawner) {
     let mut x_str = String::<EDIT_LENGTH>::new();
     x_str.push_str("ABC").unwrap();
     
+   // let stack = Stack::new();
+
     // This struct holds the values used for viewing, not the ones calculated on.
     // Let's see if that works.
-    let stack_view = DisplayStackView::new(
-        Some(x_str),
-        [0.113456, 2345.67, 89011., 123456.789],
-    );
+    // let stack_view = DisplayStackView::new(
+    //     Some(x_str),
+    //     [0.113456, 2345.67, 89011., 123456.789],
+    // );
 
     let mut display = DisplayStruct::new(
         display, //: ST7565<SPIInterface<embassy_embedded_hal::shared_bus::blocking::spi::SpiDeviceWithConfig<'a, NoopRawMutex, embassy_rp::spi::Spi<'a, SPI0, embassy_rp::spi::Blocking>, Output<'a>>, Output<'a>>, DOGL128_6, GraphicsMode<'a, 128, 8>, 128, 64, 8>,
@@ -178,7 +172,7 @@ async fn main (_spawner: Spawner) {
         stacknames_font, //: MonoTextStyle<'a, BinaryColor>,
         e_font, //: MonoTextStyle<'a, BinaryColor>,
         number_style,
-        stack_view
+        // stack_view
     );
 
     display.set_on(true);
@@ -205,7 +199,7 @@ async fn main (_spawner: Spawner) {
         ],
     );
 
-    let mut state: State = State::Entry;
+    let mut calc_state: State = State::Entry;
     let mut calculate : Calculate = Calculate::new(); 
     display.set_number_style(DisplayStyle::E(3));
     let mut line_edit = LineEdit::new();
@@ -221,18 +215,17 @@ async fn main (_spawner: Spawner) {
             let key = key.unwrap();
             info!("main: {} key pressed", key);         
 
-            match state {
+            match calc_state {
                 State::Entry => {
                     info!("Main: State: entry");
                     if WORK_IN_ENTRY_MODE.contains(key) | ENTER_AND_EDIT_ENTRY_MODE.contains(key){
 
                             info!("------Entry ");
                             let entry_line = line_edit.process_number_keys(key);
-
                             display.update_stack_display(entry_line);
                     } else {
                         let _x: f64 = line_edit.line.parse::<f64>().unwrap();
-                        state = State::Calculating;
+                        calc_state = State::Calculating;
                         info!("Going to Calculating state in main");
                         // calculate.process_calculate_key(key);
                     }
@@ -240,11 +233,12 @@ async fn main (_spawner: Spawner) {
                 State::Calculating => {
                     info!("State: calculating - key is: {}", key);
                     if ENTER_AND_EDIT_ENTRY_MODE.contains(key){
-                        state = State::Entry; info!("Change state to Entry.......");
+                        calc_state = State::Entry; info!("Change state to Entry.......");
                         info!("In calculating state, setting global: state to Entry for: {}", key);
                     } else {
                         info!("In calculating state, process_key: {}", key);
                         calculate.process_calculate_key(key);
+
                     }
                 },
             }
