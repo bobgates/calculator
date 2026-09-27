@@ -29,7 +29,7 @@ use display::DisplayStruct;
 use display::DisplayStyle;
 // use display::DisplayLine;
 use display_interface_spi::SPIInterface;
-// use display::DisplayStackView;
+use display::DisplayStackView;
 
 use embassy_embedded_hal::shared_bus::blocking::spi::SpiDeviceWithConfig;
 use embassy_executor::Spawner;
@@ -160,10 +160,10 @@ async fn main (_spawner: Spawner) {
 
     // This struct holds the values used for viewing, not the ones calculated on.
     // Let's see if that works.
-    // let stack_view = DisplayStackView::new(
-    //     Some(x_str),
-    //     [0.113456, 2345.67, 89011., 123456.789],
-    // );
+    let stack_view = DisplayStackView::new(
+        Some(x_str),
+        [0.113456, 2345.67, 89011., 123456.789],
+    );
 
     let mut display = DisplayStruct::new(
         display, //: ST7565<SPIInterface<embassy_embedded_hal::shared_bus::blocking::spi::SpiDeviceWithConfig<'a, NoopRawMutex, embassy_rp::spi::Spi<'a, SPI0, embassy_rp::spi::Blocking>, Output<'a>>, Output<'a>>, DOGL128_6, GraphicsMode<'a, 128, 8>, 128, 64, 8>,
@@ -172,7 +172,7 @@ async fn main (_spawner: Spawner) {
         stacknames_font, //: MonoTextStyle<'a, BinaryColor>,
         e_font, //: MonoTextStyle<'a, BinaryColor>,
         number_style,
-        // stack_view
+        stack_view
     );
 
     display.set_on(true);

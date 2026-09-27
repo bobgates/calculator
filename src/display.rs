@@ -125,7 +125,7 @@ pub struct DisplayStruct <'a>{
     number_style: DisplayStyle,
     eline : Option<String<EDIT_LENGTH>>,
     state: crate::State,
-    // pub stack_view: DisplayStackView,
+    pub stack_view: DisplayStackView,
 }
 
 impl <'a> DisplayStruct <'a>{
@@ -136,7 +136,7 @@ impl <'a> DisplayStruct <'a>{
                 e_font: MonoTextStyle<'a, BinaryColor>,
                 number_style: DisplayStyle,
                 // stack_ref: &'a mut Stack,
-                // stack_view: DisplayStackView,
+                stack_view: DisplayStackView,
             ) -> Self {
         
         display.reset(&mut reset_pin, &mut Delay).unwrap();
@@ -155,7 +155,7 @@ info!("_____________________");
             number_style,
             eline: None,
             state: Calculating,
-            // stack_view: stack_view,
+            stack_view: stack_view,
         }
     }
 
@@ -183,21 +183,29 @@ info!("_____________________");
     // if it is active, or stack x value if it is not.
     pub fn update_stack_display(&mut self, entry_line: Option<String<EDIT_LENGTH>>) {
         
-        // self.stack_view.set_format(DisplayStyle::E(4));
+        self.stack_view.set_format(DisplayStyle::E(4));
 
-        // let sv = self.stack_view.get_all();
-        // let _y_str = num_to_string(sv.ds, &sv.xyzt[1]);
-        // let _z_str = num_to_string(sv.ds, &sv.xyzt[2]);
-        // let _t_str = num_to_string(sv.ds, &sv.xyzt[3]);
+        let sv = self.stack_view.get_all();
+        let y_str = num_to_string(sv.ds, &sv.xyzt[1]).0;
+        self.draw_one_line(Some(y_str), DisplayLine::Y );            
+        let z_str = num_to_string(sv.ds, &sv.xyzt[2]).0;
+        self.draw_one_line(Some(z_str), DisplayLine::Z );            
+        let t_str = num_to_string(sv.ds, &sv.xyzt[3]).0;
+        self.draw_one_line(Some(t_str), DisplayLine::T );            
 
-        // let mut x_str: String<EDIT_LENGTH> = String::new();
-        // let mut epos: Option<i32> = None;
+        let x_str = 
         if entry_line.is_some(){ // We have a string already
-            let x_str:String<EDIT_LENGTH> = entry_line.unwrap();
-            self.draw_one_line(Some(x_str), DisplayLine::X );
+            entry_line.unwrap()
         } else {
-            // num_to_string(sv.ds, &sv.xyzt[0]);
-        }
+            num_to_string(sv.ds, &sv.xyzt[0]).0
+        };
+        // let x_str = 
+        // if entry_line.is_some(){ // We have a string already
+        //     entry_line.unwrap();
+        // } else {
+        //     num_to_string(sv.ds, &sv.xyzt[0]).0;
+        // };
+        self.draw_one_line(Some(x_str), DisplayLine::X );            
         self.display.flush().unwrap();       // Flushes internal buffer to the display
 
     }
@@ -332,13 +340,15 @@ pub fn num_to_string(number_style: DisplayStyle, number: &f64 )->(String<EDIT_LE
                 let p = a.find("E").unwrap(); // must succeed, defined two lines above
                 // info!("Found E at {}",p);
                     
-                if !a.contains("."){
-                    let required = sf+2 - a.len() as i32;
-                    for _i in 0..required {
+                if !a.contains("."){                                 // Formats numbers with zero after the
+                    let required = sf+2 - a.len() as i32;       // decimal point to have sf zeroes 
+                    for _i in 0..required {                     // after the decimal point
                         a.insert(p,'0').unwrap();
                     }
                     a.insert(p, '.').unwrap();
                 } 
+
+                DisplayStruct ::replace_letter(&Some(a.clone()), 'E', ' ');
 
                 let mut b: String<EDIT_LENGTH>=String::new();
                 let mut e_pos: Option<i32> = None;
