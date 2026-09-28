@@ -189,11 +189,11 @@ info!("_____________________");
 
         let sv = self.stack_view.get_all();
         let (y_str, e_pos) = num_to_string(sv.ds, &sv.xyzt[1]);
-        self.draw_one_line(Some(y_str), e_pos, DisplayLine::Y );            
+        self.draw_one_line(Some(y_str),  DisplayLine::Y );            
         let (z_str, e_pos) = num_to_string(sv.ds, &sv.xyzt[2]);
-        self.draw_one_line(Some(z_str), e_pos, DisplayLine::Z );            
+        self.draw_one_line(Some(z_str),DisplayLine::Z );            
         let (t_str, e_pos) = num_to_string(sv.ds, &sv.xyzt[3]);
-        self.draw_one_line(Some(t_str), e_pos,DisplayLine::T );            
+        self.draw_one_line(Some(t_str),DisplayLine::T );            
 
         let (x_str, e_pos) = 
         if entry_line.is_some(){ // We have a string already
@@ -202,30 +202,49 @@ info!("_____________________");
             num_to_string(sv.ds, &sv.xyzt[0])
         };
 
-        self.draw_one_line(Some(x_str), e_pos, DisplayLine::X );    
+
+// There's an error above. This code works, but more or less the same code
+// in lines above does not.
+
+        info!("e_pos in update_stack_display: {}", e_pos);
+        self.draw_one_line(Some(x_str), DisplayLine::X );    
         self.display.flush().unwrap();       // Flushes internal buffer to the display
 
     }
 
+    // find any capital E's in number_str
+    pub fn find_epos(number_str: String<EDIT_LENGTH>)->Option<u8>
+    {      
+        for (l, c) in number_str.chars().enumerate(){
+            if c == 'E' {
+                return Some(l.try_into().unwrap());
+            } 
+        } 
+        None 
+    }
+
     // Takes a option so that it'll work on empty strings.
-    pub fn replace_letter(entry_line: &Option<String<EDIT_LENGTH>>, letter_out: char, letter_in: char)->Option<String<EDIT_LENGTH>>{
+    // returns string with letter replaced, and an option enclosing e_pos if the letter replaced was an E
+    pub fn replace_letter(&mut self, entry_line: &Option<String<EDIT_LENGTH>>, letter_out: char, letter_in: char) -> (Option<String<EDIT_LENGTH>>, Option<i32>) {
         let mut out:String<EDIT_LENGTH> = String::new();
         if entry_line.is_none(){
-            return None;
+            return (None, None);
         };
         let line = entry_line.clone().unwrap();
-        for c in line.chars(){
+        let mut e_pos:Option<i32>= None;
+        for (pos, c) in line.chars().enumerate(){
             if c == letter_out {
+                if c =='E' {e_pos=Some(pos.try_into().unwrap())}
                 let _ = out.push(letter_in);
             } else {
                 let _ = out.push(c);
             }
         }
-        Some(out)
+        (Some(out), e_pos)
     }
   
 
-    pub fn draw_one_line(&mut self, entry_line: Option<String<EDIT_LENGTH>>, e_pos: Option<i32>, target: DisplayLine){ 
+    pub fn draw_one_line(&mut self, entry_line: Option<String<EDIT_LENGTH>>, target: DisplayLine){   // e_pos: Option<i32>,
   
         if entry_line.is_none(){
             info!("entry_line is none in dislay.draw_one_line");
@@ -246,28 +265,22 @@ info!("_____________________");
             DisplayLine::T => {("t", LABEL_BOTTOM - 3*LINE_SPACING, NUMBER_BOTTOM - 3*LINE_SPACING)},
         };
 
-        // Replace the e in entry_line with a space
-        // let mut e_pos: Option<i32> = None;
-        // for (i, c) in line.chars().enumerate(){
-        //     if c=='E' {
-        //         e_pos = Some(i.try_into().unwrap());
-        //     };
-        // }
-        if e_pos.is_some(){
-            info!("e_pos is {}", e_pos);
-            Self::replace_letter(&Some(line.clone()) , 'E', ' ');
-        }   
 
-        // let line = line.clone();
+
+        let (line, e_pos)= self.replace_letter(&Some(line.clone()) , 'E', ' ');
+
+
+        info!(" epos in draw_one_line {}",e_pos);
+
+        let line = line.clone();
         let _= Text::new(letter, Point::new(NAME_LEFT, label_bottom), self.stack_names_font).draw(&mut self.display);
         let _ = Text::new(":", Point::new(COLON_LEFT, label_bottom), self.stack_names_font).draw(&mut self.display);
-        let _ = Text::new(&line.clone(), Point::new(NUM_LEFT, number_bottom), self.font).draw(&mut self.display);
+        let _ = Text::new(&line.as_ref().unwrap().clone(), Point::new(NUM_LEFT, number_bottom), self.font).draw(&mut self.display);
         if e_pos.is_some() {
             let _ = Text::new("E", Point::new(NUM_LEFT + NUM_WIDTH * e_pos.unwrap() + 3, number_bottom-2), self.e_font).draw(&mut self.display);
         }
+        self.replace_letter(&line.clone(), ' ', 'E');
 
-        Self::replace_letter(&Some(line), ' ', 'E');
-        
     }
 }
 
