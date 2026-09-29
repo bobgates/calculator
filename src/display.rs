@@ -188,16 +188,16 @@ info!("_____________________");
         self.stack_view.set_format(DisplayStyle::E(4));
 
         let sv = self.stack_view.get_all();
-        let (y_str, e_pos) = num_to_string(sv.ds, &sv.xyzt[1]);
+        let y_str = num_to_string(sv.ds, &sv.xyzt[1]);
         self.draw_one_line(Some(y_str),  DisplayLine::Y );            
-        let (z_str, e_pos) = num_to_string(sv.ds, &sv.xyzt[2]);
+        let z_str = num_to_string(sv.ds, &sv.xyzt[2]);
         self.draw_one_line(Some(z_str),DisplayLine::Z );            
-        let (t_str, e_pos) = num_to_string(sv.ds, &sv.xyzt[3]);
+        let t_str = num_to_string(sv.ds, &sv.xyzt[3]);
         self.draw_one_line(Some(t_str),DisplayLine::T );            
 
-        let (x_str, e_pos) = 
+        let x_str = 
         if entry_line.is_some(){ // We have a string already
-            (entry_line.unwrap(), None)
+            entry_line.unwrap()
         } else {
             num_to_string(sv.ds, &sv.xyzt[0])
         };
@@ -206,7 +206,7 @@ info!("_____________________");
 // There's an error above. This code works, but more or less the same code
 // in lines above does not.
 
-        info!("e_pos in update_stack_display: {}", e_pos);
+        // info!("e_pos in update_stack_display: {}", e_pos);
         self.draw_one_line(Some(x_str), DisplayLine::X );    
         self.display.flush().unwrap();       // Flushes internal buffer to the display
 
@@ -225,13 +225,32 @@ info!("_____________________");
 
     // Takes a option so that it'll work on empty strings.
     // returns string with letter replaced, and an option enclosing e_pos if the letter replaced was an E
-    pub fn replace_letter(&mut self, entry_line: &Option<String<EDIT_LENGTH>>, letter_out: char, letter_in: char) -> (Option<String<EDIT_LENGTH>>, Option<i32>) {
+    // pub fn replace_letter_(&mut self, entry_line: &Option<String<EDIT_LENGTH>>, letter_out: char, letter_in: char) -> (Option<String<EDIT_LENGTH>>, Option<i32>) {
+    //     let mut out:String<EDIT_LENGTH> = String::new();
+    //     if entry_line.is_none(){
+    //         return (None, None);
+    //     };
+    //     let line = entry_line.clone().unwrap();
+    //     let mut e_pos:Option<i32>= None;
+    //     for (pos, c) in line.chars().enumerate(){
+    //         if c == letter_out {
+    //             if c =='E' {e_pos=Some(pos.try_into().unwrap())}
+    //             let _ = out.push(letter_in);
+    //         } else {
+    //             let _ = out.push(c);
+    //         }
+    //     }
+    //     (Some(out), e_pos)
+    // }
+
+
+    // returns string with letter replaced. Used to replace E with a space
+    // and vice_versa
+    pub fn replace_letter(&mut self, entry_line: &String<EDIT_LENGTH>, letter_out: char, letter_in: char) -> (String<EDIT_LENGTH>, Option<u8>) {
+
+        let line = entry_line.clone();
+        let mut e_pos:Option<u8>= None;
         let mut out:String<EDIT_LENGTH> = String::new();
-        if entry_line.is_none(){
-            return (None, None);
-        };
-        let line = entry_line.clone().unwrap();
-        let mut e_pos:Option<i32>= None;
         for (pos, c) in line.chars().enumerate(){
             if c == letter_out {
                 if c =='E' {e_pos=Some(pos.try_into().unwrap())}
@@ -240,9 +259,8 @@ info!("_____________________");
                 let _ = out.push(c);
             }
         }
-        (Some(out), e_pos)
+        (out, e_pos)
     }
-  
 
     pub fn draw_one_line(&mut self, entry_line: Option<String<EDIT_LENGTH>>, target: DisplayLine){   // e_pos: Option<i32>,
   
@@ -252,6 +270,7 @@ info!("_____________________");
         }
 
         let line = entry_line.clone().unwrap();
+
         
         info!("entry line is:");
         for (i, c) in line.chars().enumerate(){
@@ -265,21 +284,22 @@ info!("_____________________");
             DisplayLine::T => {("t", LABEL_BOTTOM - 3*LINE_SPACING, NUMBER_BOTTOM - 3*LINE_SPACING)},
         };
 
-
-
-        let (line, e_pos)= self.replace_letter(&Some(line.clone()) , 'E', ' ');
-
+        let (line, e_pos) = self.replace_letter(&line , 'E', ' ');
 
         info!(" epos in draw_one_line {}",e_pos);
 
-        let line = line.clone();
+        // let line = line.clone();
         let _= Text::new(letter, Point::new(NAME_LEFT, label_bottom), self.stack_names_font).draw(&mut self.display);
         let _ = Text::new(":", Point::new(COLON_LEFT, label_bottom), self.stack_names_font).draw(&mut self.display);
-        let _ = Text::new(&line.as_ref().unwrap().clone(), Point::new(NUM_LEFT, number_bottom), self.font).draw(&mut self.display);
+        let _ = Text::new(&line, Point::new(NUM_LEFT, number_bottom), self.font).draw(&mut self.display);
         if e_pos.is_some() {
-            let _ = Text::new("E", Point::new(NUM_LEFT + NUM_WIDTH * e_pos.unwrap() + 3, number_bottom-2), self.e_font).draw(&mut self.display);
+            let _ = Text::new("E", Point::new(NUM_LEFT + NUM_WIDTH * e_pos.unwrap()as i32 + 3, number_bottom-2), self.e_font).draw(&mut self.display);
         }
-        self.replace_letter(&line.clone(), ' ', 'E');
+        let (line, _e_pos)= self.replace_letter(&line, ' ', 'E');
+        info!("leaving:");
+        for (i, c) in line.chars().enumerate(){
+            info!("{}-{}", i,c);
+        }
 
     }
 }
@@ -289,7 +309,7 @@ info!("_____________________");
 // a number of significant digits and an f64, and returns a 
 // string with the number in the specified format.
 
-pub fn num_to_string(number_style: DisplayStyle, number: &f64 )->(String<EDIT_LENGTH>, Option<i32>){
+pub fn num_to_string(number_style: DisplayStyle, number: &f64 )->String<EDIT_LENGTH>{//}, Option<i32>){
     if *number == 0.0 {
         let mut output: String<EDIT_LENGTH>=format!("").unwrap();
         let _ = output.push('0');
@@ -306,7 +326,7 @@ pub fn num_to_string(number_style: DisplayStyle, number: &f64 )->(String<EDIT_LE
         }
         let _ = output.push('_');
         let _ = output.push('0');
-        return (output,Some(pos));
+        return output; //,Some(pos));
     } else {
         let mut a: String<EDIT_LENGTH>;
         match number_style {
@@ -356,29 +376,30 @@ pub fn num_to_string(number_style: DisplayStyle, number: &f64 )->(String<EDIT_LE
                     a.insert(p, '.').unwrap();
                 } 
 
+                a
                 // DisplayStruct ::replace_letter(&Some(a.clone()), 'E', ' ');
 
-                let mut b: String<EDIT_LENGTH>=String::new();
-                let mut e_pos: Option<i32> = None;
+                // let mut b: String<EDIT_LENGTH>=String::new();
+                // // let mut e_pos: Option<i32> = None;
                 // info!("Contains E");
-                for (l, c) in a.chars().enumerate(){
-                    if c == 'E' {
-                        b.push(' ').unwrap();
-                        e_pos = Some(l.try_into().unwrap());
-                    } else {
-                        b.push(c).unwrap();
-                    }
-                }   
-                return(b, e_pos)       
+                // for (l, c) in a.chars().enumerate(){
+                //     if c == 'E' {
+                //         b.push(' ').unwrap();
+                //         // e_pos = Some(l.try_into().unwrap());
+                //     } else {
+                //         b.push(c).unwrap();
+                //     }
+                // }   
+                // return b       
             },
             DisplayStyle::_S(_sf) => {
-                return(format!("Not implemented").unwrap(), None)
+                return format!("Not implemented").unwrap();
             },
             DisplayStyle::_FIXED => {
-                return(format!("Not implemented").unwrap(), None)
+                return format!("Not implemented").unwrap();
             },
             DisplayStyle::_ALL => { 
-                return(format!("Not implemented").unwrap(), None)
+                return format!("Not implemented").unwrap();
             }
 
         }

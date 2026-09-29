@@ -219,8 +219,8 @@ async fn main (_spawner: Spawner) {
                 State::Entry => {
                     info!("Main: State: entry");
                     if WORK_IN_ENTRY_MODE.contains(key) | ENTER_AND_EDIT_ENTRY_MODE.contains(key){
-
                             info!("------Entry ");
+                            info!("key: {}_", key);
                             let entry_line = line_edit.process_number_keys(key);
                             display.update_stack_display(entry_line);
                     } else {
