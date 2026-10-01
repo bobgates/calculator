@@ -35,7 +35,7 @@ pub use st7565::ST7565;
 use st7565::modes::GraphicsMode;
 
 // use crate::stack::Stack;
-use crate::State::Calculating;
+// use crate::State::Calculating;
 // use crate::XLine::Number;
 use num_traits::float::FloatCore;
 
@@ -86,27 +86,20 @@ impl DisplayLine {
 
 #[derive(Clone, Debug)]
 pub struct DisplayStackView{
-    pub x_str: Option<String<EDIT_LENGTH>>,
     pub xyzt: [f64;4],
     pub ds:DisplayStyle,
 }
 
 impl DisplayStackView{
-    pub fn new( x: Option<String<EDIT_LENGTH>>, xyzt: [f64;4])->DisplayStackView {
+    pub fn new(xyzt: [f64;4], ds: DisplayStyle)->DisplayStackView {
         DisplayStackView{
-            x_str: x,
             xyzt,
-            ds: DisplayStyle::E(4),
+            ds,
         }
     }
 
     pub fn set_format(&mut self, ds: DisplayStyle) {
         self.ds = ds;
-    }
-
-    pub fn set_all(&mut self, a: Option<String<EDIT_LENGTH>>, xyzt: [f64; 4]) {
-        self.x_str = a;
-        self.xyzt = xyzt;
     }
 
     pub fn get_all(&self)->DisplayStackView{
@@ -118,13 +111,10 @@ impl DisplayStackView{
 // #[derive(Copy)]
 pub struct DisplayStruct <'a>{
     pub display: ST7565<SPIInterface<embassy_embedded_hal::shared_bus::blocking::spi::SpiDeviceWithConfig<'a, NoopRawMutex, embassy_rp::spi::Spi<'a, SPI0, embassy_rp::spi::Blocking>, Output<'a>>, Output<'a>>, DOGL128_6, GraphicsMode<'a, 128, 8>, 128, 64, 8>,
-    reset_pin: Output<'a>,
     font: MonoTextStyle<'a, BinaryColor>,
     stack_names_font: MonoTextStyle<'a, BinaryColor>,
     e_font: MonoTextStyle<'a, BinaryColor>,
-    number_style: DisplayStyle,
-    eline : Option<String<EDIT_LENGTH>>,
-    state: crate::State,
+    // number_style: DisplayStyle,
     pub stack_view: DisplayStackView,
 }
 
@@ -134,8 +124,7 @@ impl <'a> DisplayStruct <'a>{
                 font: MonoTextStyle<'a, BinaryColor>,
                 stack_names_font: MonoTextStyle<'a, BinaryColor>,
                 e_font: MonoTextStyle<'a, BinaryColor>,
-                number_style: DisplayStyle,
-                // stack_ref: &'a mut Stack,
+                // number_style: DisplayStyle,
                 stack_view: DisplayStackView,
             ) -> Self {
         
@@ -148,13 +137,10 @@ info!("_____________________");
 
         Self { 
             display, 
-            reset_pin,
             font,
             stack_names_font,
             e_font,
-            number_style,
-            eline: None,
-            state: Calculating,
+            // number_style,
             stack_view: stack_view,
         }
     }
@@ -163,21 +149,22 @@ info!("_____________________");
    // and returns the position of the 'E' if it is present
 
     
-    pub fn set_number_style(&mut self, ds: DisplayStyle){
-        self.number_style = ds;
-    }
+    // pub fn set_number_style(&mut self, ds: DisplayStyle){
+    //     self.stack_view.ds = ds;
+    // }
 
     pub fn set_on(&mut self, on: bool) {
+        info!("Power on gets called");
+        self.display.set_display_on(on).unwrap();
 
         let _ = self.display.flush();
-        self.display.set_display_on(on).unwrap();
+        self.display.set_display_on(true).unwrap();
 
         let num_str: String<EDIT_LENGTH> =  format!("{}", "Power on").unwrap();//Format!("{}".num);
         let _ =Text::new(&num_str, Point::new(24, 18), self.font).draw(&mut self.display);
-         self.display.flush().unwrap(); 
+        // self.display.flush().unwrap(); 
+        info!("Should have written to screen by now");
     }
-
-
 
     // Updates the display with the current stack values and the current entry line
     // if it is active, or stack x value if it is not.
@@ -201,27 +188,35 @@ info!("_____________________");
         } else {
             num_to_string(sv.ds, &sv.xyzt[0])
         };
-
-
-// There's an error above. This code works, but more or less the same code
-// in lines above does not.
-
-        // info!("e_pos in update_stack_display: {}", e_pos);
         self.draw_one_line(Some(x_str), DisplayLine::X );    
+        
         self.display.flush().unwrap();       // Flushes internal buffer to the display
+
+
+        self.display.clear(BinaryColor::Off);
+
+        let x_buffer_str = "123.456";
+        let _= Text::new("x", Point::new(NAME_LEFT, X_LABEL_BOTTOM), self.stack_names_font).draw(&mut self.display);
+        let _ = Text::new(":", Point::new(COLON_LEFT, X_LABEL_BOTTOM), self.stack_names_font).draw(&mut self.display);
+        let _ = Text::new(&x_buffer_str, Point::new(NUM_LEFT, T_NUM_BOTTOM), self.font).draw(&mut self.display);
+        
+        self.display.flush().unwrap();      
+
+
+
 
     }
 
     // find any capital E's in number_str
-    pub fn find_epos(number_str: String<EDIT_LENGTH>)->Option<u8>
-    {      
-        for (l, c) in number_str.chars().enumerate(){
-            if c == 'E' {
-                return Some(l.try_into().unwrap());
-            } 
-        } 
-        None 
-    }
+    // pub fn find_epos(number_str: String<EDIT_LENGTH>)->Option<u8>
+    // {      
+    //     for (l, c) in number_str.chars().enumerate(){
+    //         if c == 'E' {
+    //             return Some(l.try_into().unwrap());
+    //         } 
+    //     } 
+    //     None 
+    // }
 
     // Takes a option so that it'll work on empty strings.
     // returns string with letter replaced, and an option enclosing e_pos if the letter replaced was an E
@@ -272,10 +267,10 @@ info!("_____________________");
         let line = entry_line.clone().unwrap();
 
         
-        info!("entry line is:");
-        for (i, c) in line.chars().enumerate(){
-            info!("{}-{}", i,c);
-        }
+        // info!("entry line is:");
+        // for (i, c) in line.chars().enumerate(){
+        //     info!("{}-{}", i,c);
+        // }
 
         let (letter, label_bottom, number_bottom)  = match target {
             DisplayLine::X => {("x", LABEL_BOTTOM, NUMBER_BOTTOM)},
@@ -286,7 +281,7 @@ info!("_____________________");
 
         let (line, e_pos) = self.replace_letter(&line , 'E', ' ');
 
-        info!(" epos in draw_one_line {}",e_pos);
+        // info!(" epos in draw_one_line {}",e_pos);
 
         // let line = line.clone();
         let _= Text::new(letter, Point::new(NAME_LEFT, label_bottom), self.stack_names_font).draw(&mut self.display);
@@ -295,18 +290,21 @@ info!("_____________________");
         if e_pos.is_some() {
             let _ = Text::new("E", Point::new(NUM_LEFT + NUM_WIDTH * e_pos.unwrap()as i32 + 3, number_bottom-2), self.e_font).draw(&mut self.display);
         }
-        let (line, _e_pos)= self.replace_letter(&line, ' ', 'E');
-        info!("leaving:");
-        for (i, c) in line.chars().enumerate(){
-            info!("{}-{}", i,c);
-        }
+        // let (line, _e_pos)= self.replace_letter(&line, ' ', 'E');
+        
+        
+        
+        // info!("leaving:");
+        // for (i, c) in line.chars().enumerate(){
+        //     info!("{}-{}", i,c);
+        // }
 
     }
 }
 
 
-// Takes a number style, essentially Eng, Sci or Fixed and
-// a number of significant digits and an f64, and returns a 
+// Takes a number style, (essentially Eng, Sci or Fixed and
+// a number of significant digits) and an f64, and returns a 
 // string with the number in the specified format.
 
 pub fn num_to_string(number_style: DisplayStyle, number: &f64 )->String<EDIT_LENGTH>{//}, Option<i32>){
@@ -314,10 +312,10 @@ pub fn num_to_string(number_style: DisplayStyle, number: &f64 )->String<EDIT_LEN
         let mut output: String<EDIT_LENGTH>=format!("").unwrap();
         let _ = output.push('0');
         let _ = output.push('.');
-        let mut pos=0;
+        // let mut pos=0;
         match number_style {
             DisplayStyle::E(sf) => {
-                pos = sf+2;
+                // pos = sf+2;
                 for _ in 0..sf {
                     let _ = output.push('0');
                 }
@@ -350,7 +348,6 @@ pub fn num_to_string(number_style: DisplayStyle, number: &f64 )->String<EDIT_LEN
                                                 // info! gives .0 if there are no non-zero decimals
                                                 // format just doesn't return no-zero decimals
                 a = String::from(format!("{}E{}", n, exp).unwrap());
-                // self.eline = Some(a.clone());
 
                 // sf here is the number of significant figures to display, 
                 // but it is being interpreted as the number of decimal places 
@@ -367,7 +364,7 @@ pub fn num_to_string(number_style: DisplayStyle, number: &f64 )->String<EDIT_LEN
                 //.  that's character length 5, sf we want is 5,  so (sf+1)-len = 6-5 =
                 // add one zero.
 
-                let p = a.find("E").unwrap(); // must succeed, defined two lines above                 
+                let p = a.find("E").unwrap();                 // must succeed, defined two lines above                 
                 if !a.contains("."){                                 // Formats numbers with zero after the
                     let required = sf+2 - a.len() as i32;       // decimal point to have sf zeroes 
                     for _i in 0..required {                     // after the decimal point
@@ -375,22 +372,7 @@ pub fn num_to_string(number_style: DisplayStyle, number: &f64 )->String<EDIT_LEN
                     }
                     a.insert(p, '.').unwrap();
                 } 
-
                 a
-                // DisplayStruct ::replace_letter(&Some(a.clone()), 'E', ' ');
-
-                // let mut b: String<EDIT_LENGTH>=String::new();
-                // // let mut e_pos: Option<i32> = None;
-                // info!("Contains E");
-                // for (l, c) in a.chars().enumerate(){
-                //     if c == 'E' {
-                //         b.push(' ').unwrap();
-                //         // e_pos = Some(l.try_into().unwrap());
-                //     } else {
-                //         b.push(c).unwrap();
-                //     }
-                // }   
-                // return b       
             },
             DisplayStyle::_S(_sf) => {
                 return format!("Not implemented").unwrap();
@@ -401,7 +383,6 @@ pub fn num_to_string(number_style: DisplayStyle, number: &f64 )->String<EDIT_LEN
             DisplayStyle::_ALL => { 
                 return format!("Not implemented").unwrap();
             }
-
         }
     }
 }
