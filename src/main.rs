@@ -20,6 +20,7 @@ use cortex_m::asm::delay;
 
 //use crate::line_edit::EDIT_LENGTH;
 
+
 use {defmt_rtt as _, panic_probe as _};
 
 use defmt::info; //enables info! for debugging;
@@ -58,8 +59,7 @@ use flash_led::FlashLed;
 use heapless::String; //, format};
 
 mod keyboard;
-use keyboard::Keyboard;//, KeyName};
-use keyboard::{ENTER_AND_EDIT_ENTRY_MODE, WORK_IN_ENTRY_MODE};
+use keyboard::{Keyboard, KeyName, ENTER_AND_EDIT_ENTRY_MODE, WORK_IN_ENTRY_MODE};
 
 mod line_edit;
 use line_edit::LineEdit;
@@ -153,15 +153,15 @@ async fn main (_spawner: Spawner) {
     let e_font = MonoTextStyle::new(&FONT_6X10, BinaryColor::On);
     let number_style = DisplayStyle::E(4);
   
-    let mut x_str = String::<EDIT_LENGTH>::new();
-    x_str.push_str("ABC").unwrap();
+    // let mut x_str = String::<EDIT_LENGTH>::new();
+    // x_str.push_str("ABC").unwrap();
     
    // let stack = Stack::new();
 
     // This struct holds the values used for viewing, not the ones calculated on.
     // Let's see if that works.
     let stack_view = DisplayStackView::new(
-        Some(x_str),
+        // Some(x_str),
         [0.113456, 2345.67, 89011., 123456.789],
     );
 
@@ -199,7 +199,7 @@ async fn main (_spawner: Spawner) {
         ],
     );
 
-    let mut calc_state: State = State::Entry;
+    let mut machine_state: State = State::Entry;
     let mut calculate : Calculate = Calculate::new(); 
     display.set_number_style(DisplayStyle::E(3));
     let mut line_edit = LineEdit::new();
@@ -215,17 +215,28 @@ async fn main (_spawner: Spawner) {
             let key = key.unwrap();
             info!("main: {} key pressed", key);         
 
-            match calc_state {
+            match machine_state {
                 State::Entry => {
                     info!("Main: State: entry");
                     if WORK_IN_ENTRY_MODE.contains(key) | ENTER_AND_EDIT_ENTRY_MODE.contains(key){
-                            info!("------Entry ");
-                            info!("key: {}_", key);
+                            // info!("------Entry ");
+                            info!("Entry key: {}", key);
                             let entry_line = line_edit.process_number_keys(key);
                             display.update_stack_display(entry_line);
-                    } else {
-                        let _x: f64 = line_edit.line.parse::<f64>().unwrap();
-                        calc_state = State::Calculating;
+                    } else {  // We've hit a key that takes out of entry, now we need to act
+                        let x: f64 = line_edit.line.parse::<f64>().unwrap();
+                        display.stack_view.xyzt[0] = x;
+                        match key {
+                            KeyName::Enter => {
+                                display.stack_view.push(x);
+                            },
+                            KeyName::Plus => {
+                                display.stack_view.binary_op(KeyName::Plus);
+                            }
+                            _ => {},
+                        }
+                        display.update_stack_display(None);
+                        machine_state = State::Calculating;
                         info!("Going to Calculating state in main");
                         // calculate.process_calculate_key(key);
                     }
@@ -233,7 +244,7 @@ async fn main (_spawner: Spawner) {
                 State::Calculating => {
                     info!("State: calculating - key is: {}", key);
                     if ENTER_AND_EDIT_ENTRY_MODE.contains(key){
-                        calc_state = State::Entry; info!("Change state to Entry.......");
+                        machine_state = State::Entry; info!("Change state to Entry.......");
                         info!("In calculating state, setting global: state to Entry for: {}", key);
                     } else {
                         info!("In calculating state, process_key: {}", key);

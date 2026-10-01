@@ -70,7 +70,7 @@ impl LineEdit{//<'_>{
     // Only called in Entry mode, so we know that the key is a number 
     // or a decimal point or E or +/-
     pub fn process_number_keys(&mut self, key: KeyName)->Option<String<EDIT_LENGTH>>{ 
-info!("In process_number_keys***************************************************************** ");
+// info!("In process_number_keys***************************************************************** ");
         match key{
             KeyName::Enter => {
                 for c in self.line.chars() {

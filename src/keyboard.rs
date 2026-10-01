@@ -75,9 +75,6 @@ pub const ENTER_AND_EDIT_ENTRY_MODE: EnumSet<KeyName> = enum_set!(
 
 pub const WORK_IN_ENTRY_MODE: EnumSet<KeyName> = enum_set!( KeyName::PlusMinus | KeyName::Back );             // Works in number mode
 
-// pub const ALL_KEYS;
-
-// #[derive(Debug, Clone, Copy)]
 static ROW_COL_MAP: [[KeyName; 6]; 8] = [
     [KeyName::OnOff, KeyName::Number0, KeyName::DecimalPoint, KeyName::Error,  KeyName::RunStop, KeyName::Plus],
     [KeyName::Orange, KeyName::Number1, KeyName::Number2, KeyName::Error,  KeyName::Number3, KeyName::Minus],
@@ -89,20 +86,7 @@ static ROW_COL_MAP: [[KeyName; 6]; 8] = [
     [KeyName::Fn1, KeyName::Fn2, KeyName::Fn3, KeyName::Fn4, KeyName::Fn5, KeyName::Fn6]
 ];
 
-// struct KeyCount {
-
-// }
-
-// trait PinControl {
-//     fn set_pin(&mut self);
-//     fn clear_pin(&mut self);
-//     fn set_pin_value(&mut self, set: bool);
-// }
-
-
-
 pub struct Keyboard{
-
     rows: [Input<'static>; 8],
     cols: [Output<'static>; 6],
     current_key: Option<KeyName>,
@@ -119,21 +103,6 @@ impl Keyboard {
             current_key: None,
         }
     }
-
-    // pub fn enters_entry_mode(key: KeyName)->bool{
-    //     ENTER_AND_EDIT_ENTRY_MODE.contains(key)
-    // }
-
-    // pub fn is_number_element(key: KeyName)->bool{
-    //    ENTER_AND_EDIT_ENTRY_MODE.contains(key)|WORK_IN_ENTRY_MODE.contains(key)
-    // }
-
-    // pub fn works_in_entry_mode(key: KeyName)->bool{
-    //     WORK_IN_ENTRY_MODE.contains(key)        
-    // }
-
-    // All keys not above work in entry mode by getting out of it.
-
     
     // Scans the hardware and returns a key, mapped as defined above
     // if one has been pressed, else None

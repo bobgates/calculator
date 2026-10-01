@@ -27,6 +27,8 @@ use embedded_graphics::{prelude::*};
 use embedded_graphics::text::Text;
 
 use heapless::{format, String}; 
+use crate::keyboard::KeyName;
+use crate::keyboard::Keyboard;
 use crate::line_edit::{EDIT_LENGTH};//LineEdit
 
 
@@ -86,15 +88,15 @@ impl DisplayLine {
 
 #[derive(Clone, Debug)]
 pub struct DisplayStackView{
-    pub x_str: Option<String<EDIT_LENGTH>>,
+    // pub x_str: Option<String<EDIT_LENGTH>>,
     pub xyzt: [f64;4],
     pub ds:DisplayStyle,
 }
 
 impl DisplayStackView{
-    pub fn new( x: Option<String<EDIT_LENGTH>>, xyzt: [f64;4])->DisplayStackView {
+    pub fn new( /*x: Option<String<EDIT_LENGTH>>,*/ xyzt: [f64;4])->DisplayStackView {
         DisplayStackView{
-            x_str: x,
+            // x_str: x,
             xyzt,
             ds: DisplayStyle::E(4),
         }
@@ -105,13 +107,46 @@ impl DisplayStackView{
     }
 
     pub fn set_all(&mut self, a: Option<String<EDIT_LENGTH>>, xyzt: [f64; 4]) {
-        self.x_str = a;
+        // self.x_str = a;
         self.xyzt = xyzt;
     }
 
     pub fn get_all(&self)->DisplayStackView{
         self.clone()
     }
+
+    pub fn push(&mut self, n: f64){
+        self.xyzt[3] = self.xyzt[2];
+        self.xyzt[2] = self.xyzt[1];
+        self.xyzt[1] = self.xyzt[0];
+        self.xyzt[0] = n;
+    }
+
+    pub fn plus(&mut self){
+        self.xyzt[0] += self.xyzt[1];
+        self.xyzt[1] = self.xyzt[2];
+        self.xyzt[2] = self.xyzt[3];
+    }
+
+    pub fn binary_op(&mut self, operator: KeyName){
+         
+        match operator {
+            KeyName::Plus =>  self.xyzt[0] += self.xyzt[1],
+            KeyName::Minus =>  self.xyzt[0] -= self.xyzt[1],
+            KeyName::Multiply =>  self.xyzt[0] *= self.xyzt[1],
+            KeyName::Divide =>  self.xyzt[0] /= self.xyzt[1],
+
+
+
+            _ => {},
+        }
+        self.xyzt[1] = self.xyzt[2];
+        self.xyzt[2] = self.xyzt[3];
+
+    }
+
+
+
 }
 
 // #[derive(EnumSetType, Debug, Format)]
@@ -172,9 +207,11 @@ info!("_____________________");
         let _ = self.display.flush();
         self.display.set_display_on(on).unwrap();
 
+
+// This code can be in or out:
         let num_str: String<EDIT_LENGTH> =  format!("{}", "Power on").unwrap();//Format!("{}".num);
         let _ =Text::new(&num_str, Point::new(24, 18), self.font).draw(&mut self.display);
-         self.display.flush().unwrap(); 
+        self.display.flush().unwrap(); 
     }
 
 
@@ -212,37 +249,6 @@ info!("_____________________");
 
     }
 
-    // find any capital E's in number_str
-    pub fn find_epos(number_str: String<EDIT_LENGTH>)->Option<u8>
-    {      
-        for (l, c) in number_str.chars().enumerate(){
-            if c == 'E' {
-                return Some(l.try_into().unwrap());
-            } 
-        } 
-        None 
-    }
-
-    // Takes a option so that it'll work on empty strings.
-    // returns string with letter replaced, and an option enclosing e_pos if the letter replaced was an E
-    // pub fn replace_letter_(&mut self, entry_line: &Option<String<EDIT_LENGTH>>, letter_out: char, letter_in: char) -> (Option<String<EDIT_LENGTH>>, Option<i32>) {
-    //     let mut out:String<EDIT_LENGTH> = String::new();
-    //     if entry_line.is_none(){
-    //         return (None, None);
-    //     };
-    //     let line = entry_line.clone().unwrap();
-    //     let mut e_pos:Option<i32>= None;
-    //     for (pos, c) in line.chars().enumerate(){
-    //         if c == letter_out {
-    //             if c =='E' {e_pos=Some(pos.try_into().unwrap())}
-    //             let _ = out.push(letter_in);
-    //         } else {
-    //             let _ = out.push(c);
-    //         }
-    //     }
-    //     (Some(out), e_pos)
-    // }
-
 
     // returns string with letter replaced. Used to replace E with a space
     // and vice_versa
@@ -270,12 +276,11 @@ info!("_____________________");
         }
 
         let line = entry_line.clone().unwrap();
-
         
-        info!("entry line is:");
-        for (i, c) in line.chars().enumerate(){
-            info!("{}-{}", i,c);
-        }
+        // info!("entry line is:");
+        // for (i, c) in line.chars().enumerate(){
+        //     info!("{}-{}", i,c);
+        // }
 
         let (letter, label_bottom, number_bottom)  = match target {
             DisplayLine::X => {("x", LABEL_BOTTOM, NUMBER_BOTTOM)},
@@ -286,20 +291,20 @@ info!("_____________________");
 
         let (line, e_pos) = self.replace_letter(&line , 'E', ' ');
 
-        info!(" epos in draw_one_line {}",e_pos);
+        //info!(" epos in draw_one_line {}",e_pos);
 
         // let line = line.clone();
         let _= Text::new(letter, Point::new(NAME_LEFT, label_bottom), self.stack_names_font).draw(&mut self.display);
         let _ = Text::new(":", Point::new(COLON_LEFT, label_bottom), self.stack_names_font).draw(&mut self.display);
         let _ = Text::new(&line, Point::new(NUM_LEFT, number_bottom), self.font).draw(&mut self.display);
         if e_pos.is_some() {
-            let _ = Text::new("E", Point::new(NUM_LEFT + NUM_WIDTH * e_pos.unwrap()as i32 + 3, number_bottom-2), self.e_font).draw(&mut self.display);
+            let _ = Text::new("E", Point::new(NUM_LEFT + NUM_WIDTH * e_pos.unwrap()as i32 + 2, number_bottom-2), self.e_font).draw(&mut self.display);
         }
         let (line, _e_pos)= self.replace_letter(&line, ' ', 'E');
-        info!("leaving:");
-        for (i, c) in line.chars().enumerate(){
-            info!("{}-{}", i,c);
-        }
+        //info!("leaving:");
+        // for (i, c) in line.chars().enumerate(){
+        //     info!("{}-{}", i,c);
+        // }
 
     }
 }
