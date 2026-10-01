@@ -72,6 +72,33 @@ use st7565::displays::DOGL128_6;
 use st7565::ST7565;
 use st7565::modes::GraphicsMode;
 
+// mod stack;
+// use stack::Stack;
+// pub struct Stack {
+//     entries: [f64; 4]//;// pub data: Rc<RefCell<[f64; STACK_DEPTH]>>,
+//     //    last_x: Rc<RefCell<f64>>,
+// }
+// impl Stack{
+//     pub fn new()->Stack{
+//         Stack {
+//             entries: [0.0; 4],
+//         }
+//     }
+// }
+
+// struct StubAllocator;
+// unsafe impl GlobalAlloc for StubAllocator {
+//     unsafe fn alloc(&self, _layout: Layout ) -> *mut u8 {
+//         null_mut()
+//     }
+//     unsafe fn dealloc(&self, _ptr: *mut u8, _layout: Layout){
+//         //Stub no-op
+//     }
+// }
+
+// #[global_allocator] // Dummy, but has to be here for the system to work
+// static ALLOCATOR: StubAllocator = StubAllocator;
+
 
 use {defmt_rtt as _, panic_probe as _};
 
@@ -124,7 +151,7 @@ async fn main (_spawner: Spawner) {
     
     let stacknames_font = MonoTextStyle::new(&FONT_7X13, BinaryColor::On);
     let e_font = MonoTextStyle::new(&FONT_6X10, BinaryColor::On);
-    // let number_style = DisplayStyle::E(4);
+    let number_style = DisplayStyle::E(4);
   
     let mut x_str = String::<EDIT_LENGTH>::new();
     x_str.push_str("ABC").unwrap();
@@ -133,10 +160,10 @@ async fn main (_spawner: Spawner) {
 
     // This struct holds the values used for viewing, not the ones calculated on.
     // Let's see if that works.
-    // let stack_view = DisplayStackView::new(
-    //     [0.113456, 2345.67, 89011., 123456.789],
-    //     DisplayStyle::E(4)
-    // );
+    let stack_view = DisplayStackView::new(
+        Some(x_str),
+        [0.113456, 2345.67, 89011., 123456.789],
+    );
 
     let mut display = DisplayStruct::new(
         display, //: ST7565<SPIInterface<embassy_embedded_hal::shared_bus::blocking::spi::SpiDeviceWithConfig<'a, NoopRawMutex, embassy_rp::spi::Spi<'a, SPI0, embassy_rp::spi::Blocking>, Output<'a>>, Output<'a>>, DOGL128_6, GraphicsMode<'a, 128, 8>, 128, 64, 8>,
@@ -144,10 +171,8 @@ async fn main (_spawner: Spawner) {
         font,// MonoTextStyle<'a, BinaryColor>,
         stacknames_font, //: MonoTextStyle<'a, BinaryColor>,
         e_font, //: MonoTextStyle<'a, BinaryColor>,
-        DisplayStackView::new(
-            [0.113456, 2345.67, 89011., 123456.789],
-            DisplayStyle::E(4)
-        )
+        number_style,
+        stack_view
     );
 
     display.set_on(true);
@@ -176,7 +201,7 @@ async fn main (_spawner: Spawner) {
 
     let mut calc_state: State = State::Entry;
     let mut calculate : Calculate = Calculate::new(); 
-    // display.set_number_style(DisplayStyle::E(3));
+    display.set_number_style(DisplayStyle::E(3));
     let mut line_edit = LineEdit::new();
 
     // ******************************************************************************************** //
@@ -202,6 +227,7 @@ async fn main (_spawner: Spawner) {
                         let _x: f64 = line_edit.line.parse::<f64>().unwrap();
                         calc_state = State::Calculating;
                         info!("Going to Calculating state in main");
+                        // calculate.process_calculate_key(key);
                     }
                 },
                 State::Calculating => {
@@ -217,6 +243,6 @@ async fn main (_spawner: Spawner) {
                 },
             }
         }
-        //display.update_stack_display(None);
+        // display.update_stack_display(None);
     }
 }
