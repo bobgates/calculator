@@ -122,6 +122,14 @@ impl DisplayStackView{
         self.xyzt[0] = n;
     }
 
+    pub fn pop(&mut self)->f64{
+        let n = self.xyzt[0];
+        self.xyzt[0] = self.xyzt[1];
+        self.xyzt[1] = self.xyzt[2];
+        self.xyzt[2] = self.xyzt[3];
+        n
+    }
+
     pub fn plus(&mut self){
         self.xyzt[0] += self.xyzt[1];
         self.xyzt[1] = self.xyzt[2];
@@ -134,15 +142,11 @@ impl DisplayStackView{
             KeyName::Plus =>  self.xyzt[0] += self.xyzt[1],
             KeyName::Minus =>  self.xyzt[0] -= self.xyzt[1],
             KeyName::Multiply =>  self.xyzt[0] *= self.xyzt[1],
-            KeyName::Divide =>  self.xyzt[0] /= self.xyzt[1],
-
-
-
+            KeyName::Divide => { self.xyzt[1] /= self.xyzt[0]; self.pop();},
             _ => {},
         }
         self.xyzt[1] = self.xyzt[2];
         self.xyzt[2] = self.xyzt[3];
-
     }
 
 
@@ -220,7 +224,7 @@ info!("_____________________");
     // if it is active, or stack x value if it is not.
     pub fn update_stack_display(&mut self, entry_line: Option<String<EDIT_LENGTH>>) {
         
-                self.display.clear(BinaryColor::Off);        
+        self.display.clear(BinaryColor::Off);        
 
         self.stack_view.set_format(DisplayStyle::E(4));
 

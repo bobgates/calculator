@@ -103,7 +103,10 @@ impl LineEdit{//<'_>{
                     self.line.pop();
                 } else {                                                        // !todo else..
                     self.line.pop();
-                    self.line.push('0').unwrap();                               // !todo - put current format of zero into self.line
+                    let _ = self.line.push('0');                               // !todo - put current format of zero into self.line
+                    let _ = self.line.push('.');                               // !todo - put current format of zero into self.line
+                    let _ = self.line.push('0');                               // !todo - put current format of zero into self.line
+                    let _ = self.line.push('0');                               // !todo - put current format of zero into self.line
                 },
             KeyName::E => if !self.line.contains('E') {                // Stops two E's being entered
                                 if self.line.len()<EDIT_LENGTH{         
