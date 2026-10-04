@@ -209,7 +209,7 @@ async fn main (_spawner: Spawner) {
     loop{
         delay(1_000_000); //100E6 is about once per second
         let key = keyboard.scan();
-        let mut key: Option<keyboard::KeyName> =  key.await;
+        let key: Option<keyboard::KeyName> =  key.await;
         let mut skip_key = false;
         if key.is_none(){
             continue;
@@ -219,13 +219,12 @@ async fn main (_spawner: Spawner) {
             
                 let key = key.unwrap();
                 info!("main: {} key pressed", key);         
-            }
+            
 
             match machine_state {
                 State::Entry => {
                     info!("Main: State: entry");
-                    if WORK_IN_ENTRY_MODE.contains(key) | ENTER_AND_EDIT_ENTRY_MODE.contains(key){
-                            // info!("------Entry ");
+                    if WORK_IN_ENTRY_MODE.contains(key) | ENTER_AND_EDIT_ENTRY_MODE.contains(key){                        // info!("------Enty ");
                             info!("Entry key: {}", key);
                             let entry_line = line_edit.process_number_keys(key);
                             display.update_stack_display(entry_line);
@@ -267,26 +266,12 @@ async fn main (_spawner: Spawner) {
                                         // machine_state = State::Entry; 
                                     } 
                         _ => {info!("                              not implemented yet for key: {}", key)}
-                            // info!("In calculating state, processing key: {}", key);
-                            // line_edit.process_number_keys(key);
-                            // machine_state = State::Entry; 
-                            // info!("Change state to Entry.......");
-                            // display.update_stack_display(None);
+
                         }
                         // Essentially, any other key that is in the ENTER_AND_EDIT_ENTRY_MODE set will take us to Entry mode, 
                         //so we can enter a number.  The Back key is a special case, as it doesn't take us to Entry mode, but//
                         // just clears the bottom of the stack to 0.
-
-
-                    }
-
-                        // else {
-                        //     info!("In calculating state, process_key: {}", key);
-                        //     line_edit.process_number_keys(key);
-                        // }
-                        // machine_state = State::Entry; info!("Change state to Entry.......");
-                        // info!("In calculating state, setting global: state to Entry for: {}", key);
-                        }
+                        
                     } else {
                         info!("In calculating state, process_key: {}", key);
                         calculate.process_calculate_key(key);
@@ -296,6 +281,7 @@ async fn main (_spawner: Spawner) {
             }
             previous_state = machine_state;
         }
+    }
         // display.update_stack_display(None);
     }
 }
