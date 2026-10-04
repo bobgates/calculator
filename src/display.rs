@@ -115,7 +115,12 @@ impl DisplayStackView{
         self.clone()
     }
 
-    pub fn push(&mut self, n: f64){
+    pub fn push(&mut self){
+        self.xyzt[3] = self.xyzt[2];
+        self.xyzt[2] = self.xyzt[1];
+        self.xyzt[1] = self.xyzt[0];
+    }
+    pub fn push_number(&mut self, n: f64){
         self.xyzt[3] = self.xyzt[2];
         self.xyzt[2] = self.xyzt[1];
         self.xyzt[1] = self.xyzt[0];
@@ -238,7 +243,9 @@ info!("_____________________");
 
         let x_str = 
         if entry_line.is_some(){ // We have a string already
-            entry_line.unwrap()
+            let mut x_str = entry_line.unwrap();
+            x_str.push('_').unwrap();
+            x_str
         } else {
             num_to_string(sv.ds, &sv.xyzt[0])
         };
@@ -333,8 +340,8 @@ pub fn num_to_string(number_style: DisplayStyle, number: &f64 )->String<EDIT_LEN
             },
             _ => { let _ = output.push('X');}       // Debug marker that other modes are not implemented
         }
-        let _ = output.push('_');
-        let _ = output.push('0');
+        // let _ = output.push('_');
+        // let _ = output.push('0');
         return output; //,Some(pos));
     } else {
         let mut a: String<EDIT_LENGTH>;

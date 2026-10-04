@@ -73,7 +73,7 @@ pub const ENTER_AND_EDIT_ENTRY_MODE: EnumSet<KeyName> = enum_set!(
     KeyName::Number9 | KeyName::DecimalPoint | 
     KeyName::E | KeyName::Back);
 
-pub const WORK_IN_ENTRY_MODE: EnumSet<KeyName> = enum_set!( KeyName::PlusMinus | KeyName::Back );             // Works in number mode
+pub const WORK_IN_ENTRY_MODE: EnumSet<KeyName> = enum_set!( KeyName::PlusMinus | KeyName::Back ); // Works in number mode
 
 static ROW_COL_MAP: [[KeyName; 6]; 8] = [
     [KeyName::OnOff, KeyName::Number0, KeyName::DecimalPoint, KeyName::Error,  KeyName::RunStop, KeyName::Plus],

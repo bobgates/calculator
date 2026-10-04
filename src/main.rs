@@ -127,7 +127,6 @@ pub enum State {
 #[embassy_executor::main]
 async fn main (_spawner: Spawner) {
     let p = embassy_rp::init(Default::default());
-    // let mut stack: Stack = Stack::new();
 
     // Give a quick flash on the RP2350 LED to show that the device is alive.
     let pico_led = Output::new(p.PIN_25, Level::High);
@@ -153,16 +152,9 @@ async fn main (_spawner: Spawner) {
     let e_font = MonoTextStyle::new(&FONT_6X10, BinaryColor::On);
     let number_style = DisplayStyle::E(4);
   
-    // let mut x_str = String::<EDIT_LENGTH>::new();
-    // x_str.push_str("ABC").unwrap();
-    
-   // let stack = Stack::new();
 
-    // This struct holds the values used for viewing, not the ones calculated on.
-    // Let's see if that works.
     let stack_view = DisplayStackView::new(
-        // Some(x_str),
-        [0.113456, 2345.67, 89011., 123456.789],
+        [0.0, 0.0, 0.0, 0.0],
     );
 
     let mut display = DisplayStruct::new(
@@ -205,83 +197,93 @@ async fn main (_spawner: Spawner) {
     let mut line_edit = LineEdit::new();
     let mut previous_state: State = machine_state;
 
+    let mut skip_key = false;
+
+
     // ******************************************************************************************** //
     loop{
         delay(1_000_000); //100E6 is about once per second
-        let key = keyboard.scan();
-        let key: Option<keyboard::KeyName> =  key.await;
-        let mut skip_key = false;
-        if key.is_none(){
-            continue;
-        } else {
-            if !skip_key {
-                info!("main: key pressed: {:?}", key);
-            
-                let key = key.unwrap();
-                info!("main: {} key pressed", key);         
-            
+        let pkey = keyboard.scan().await;
+        if pkey.is_none() {continue};
 
-            match machine_state {
-                State::Entry => {
-                    info!("Main: State: entry");
-                    if WORK_IN_ENTRY_MODE.contains(key) | ENTER_AND_EDIT_ENTRY_MODE.contains(key){                        // info!("------Enty ");
-                            info!("Entry key: {}", key);
-                            let entry_line = line_edit.process_number_keys(key);
-                            display.update_stack_display(entry_line);
-                    } else {  // We've hit a key that takes out of entry, now we need to act
-                        let x: f64 = line_edit.line.parse::<f64>().unwrap();
-                        display.stack_view.xyzt[0] = x;
-                        match key {
-                            KeyName::Enter => {
-                                display.stack_view.push(x);
-                            },
-                            KeyName::Plus => {
-                                display.stack_view.binary_op(KeyName::Plus);
-                            }
-                            KeyName::Minus => {
-                                display.stack_view.binary_op(KeyName::Minus);
-                            }
-                            KeyName::Multiply => {
-                                display.stack_view.binary_op(KeyName::Multiply);
-                            }
-                            KeyName::Divide => {
-                                display.stack_view.binary_op(KeyName::Divide);
-                            }
-                            _ => {},
+        // Take a careful look at the logic that follows:
+        
+
+
+        if skip_key {
+            info!("skip_key");
+            skip_key = false;
+            continue;   // goes to top of loop
+        } 
+        let key = pkey.unwrap();                        // setting skip_key
+        info!("main: {} key pressed", key);  
+        skip_key = false;
+               
+        match machine_state {
+            State::Entry => {
+                info!("Main: State::Entry");
+                if WORK_IN_ENTRY_MODE.contains(key) || ENTER_AND_EDIT_ENTRY_MODE.contains(key) { // info!("------Enty ");
+                    info!("Entry key: {}", key);
+                    let entry_line = line_edit.process_number_keys(key);
+                    info!("entry_line:");
+                    if entry_line.is_some() {
+                        let el = entry_line.as_ref().unwrap();
+                        for c in el.chars() {
+                            info!("entry_line char: {}", c);
                         }
-                        display.update_stack_display(None);
-                        machine_state = State::Calculating;
-                        info!("Going to Calculating state in main");
+                    }
+                    display.update_stack_display(entry_line);
+                } else {  // We've hit a key that takes out of entry, now we need to act
+                    let x: f64 = line_edit.line.parse::<f64>().unwrap();    
+                    display.stack_view.xyzt[0] = x;
+                    previous_state = machine_state;                       
+                    machine_state = State::Calculating;
+
+                    info!("Going to Calculating state in main");
+                    skip_key = true
+                }
+            },
+            State::Calculating => {
+                info!("State: calculating - key is: {}", key);
+                skip_key = false;
+                
+                match key {
+                    KeyName::Back => {
+                        display.stack_view.xyzt[0] = 0.0;   
+
+                        info!("In the process of Back key in calculating state");
                         // calculate.process_calculate_key(key);
+                    },
+                    // KeyName ::Enter => {
+                    //     display.stack_view.push();
+                    //     info!("In the process of the Enter key in calculating state");
+                    //     // calculate.process_calculate_key(key);
+                    // },
+                    KeyName::Enter => {
+                        let x = line_edit.line.parse::<f64>().unwrap();
+                        display.stack_view.push_number(x);
+                    },
+                    KeyName::Plus => {
+                        display.stack_view.binary_op(KeyName::Plus);
                     }
-                },
-                State::Calculating => {
-                    info!("State: calculating - key is: {}", key);
-                    if ENTER_AND_EDIT_ENTRY_MODE.contains(key){
-                        match key {
-                        KeyName::Back =>  {
-                                        info!("In calculating state, processing Back key"); // Pressing back key clears bottom of stack to 0
-                                        display.stack_view.xyzt[0] = 0.0;   
-                                        display.update_stack_display(None);
-                                        // machine_state = State::Entry; 
-                                    } 
-                        _ => {info!("                              not implemented yet for key: {}", key)}
-
-                        }
-                        // Essentially, any other key that is in the ENTER_AND_EDIT_ENTRY_MODE set will take us to Entry mode, 
-                        //so we can enter a number.  The Back key is a special case, as it doesn't take us to Entry mode, but//
-                        // just clears the bottom of the stack to 0.
-                        
-                    } else {
-                        info!("In calculating state, process_key: {}", key);
-                        calculate.process_calculate_key(key);
-
+                    KeyName::Minus => {
+                        display.stack_view.binary_op(KeyName::Minus);
                     }
-                },
-            }
-            previous_state = machine_state;
+                    KeyName::Multiply => {
+                        display.stack_view.binary_op(KeyName::Multiply);
+                    }
+                    KeyName::Divide => {
+                        display.stack_view.binary_op(KeyName::Divide);
+                    }
+                    _ => {info!("\t\tI don't yet know how to process {}", key)},
+                }
+                
+                display.update_stack_display(None);
+                info!("End of state calculating");
+
+            },
         }
-    }
-        // display.update_stack_display(None);
+        previous_state = machine_state;
+        info!("end of match machine_state in main");
     }
 }
