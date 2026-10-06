@@ -113,31 +113,47 @@ impl LineEdit{//<'_>{
                                 let _ = self.line.push('E');
                 }
             },
-            KeyName::PlusMinus => if self.line.contains('E') {       // If we're before the E, make that +-
-                if let Some(index) = self.line.find('E'){
-                    if self.line.len()>(index+1) && self.line.len()<EDIT_LENGTH {
-                        if self.line.as_bytes()[index+1]==b'-'{
-                            self.line.remove(index+1);
+            KeyName::PlusMinus =>  {       // If there's an E, change sign of what follows
+                if let Some(e_pos) = self.line.find('E'){               // Then make first character - or nothing
+                    info!("e_pos: {} line.len: {}", e_pos, self.line.len());     //works
+                    // If there's an E, change sign of what follows
+                    if e_pos+1 == self.line.len() {        // If E is last character, then put a minus after it
+                        if self.line.len()<EDIT_LENGTH{
+                            let _ =self.line.push('-');
+                        }
+                    } 
+                    // else if self.line.as_bytes()[e_pos+1]==b'-' {  // If there's a minus after the E, remove it
+                    //     self.line.remove(e_pos+1);
+                    // } else {                                        // If there's no minus after the E, put one there
+                    //     if self.line.len()<EDIT_LENGTH{
+                    //         let _ =self.line.insert(e_pos+1,'-');
+                    //     }
+                    // }
+                    
+                    
+                    
+                    if self.line.len()>e_pos+1 && self.line.len()<EDIT_LENGTH {
+                        if self.line.as_bytes()[e_pos]==b'-'{
+                            self.line.remove(e_pos);
                         } else {
-                            if self.line.len()==(index+1){
-                                let _ =self.line.insert(index+1, '-');
+                            if self.line.len()==(e_pos){
+                                let _ =self.line.insert(e_pos, '-');
                             }
                         }
-                    } else {                        // No E yet, so put minus at begining of number
-                        if self.line.len()==(index+1){
-                            let _ =self.line.push_str("-");
-                        }
-                    }
+                    } 
+                    // else {                        // No E yet, so put minus at begining of number
+                    //     if self.line.len()==(E_pos+1){
+                    //         let _ =self.line.push_str("-");
+                    //     }
+                    // }
                 } else { // Deal with the case of the mantissa being - or not -
                     if self.line.chars().nth(0) == Some('-'){
-                        let _a: String<20> = self.line.chars().skip(1).collect();
-                    } else {
-                        if self.line.len()<EDIT_LENGTH{
+                        self.line.remove(0);
+                        // let mut chars = self.line.chars();
+                    } else if self.line.len()<EDIT_LENGTH{
                             let _ =self.line.insert(0,'-');
-                            
                         } else {
                             info!("In KeyName::PlusMinus, last line, shouldn't have got here.")
-                        }
                     }
                 }
             }, 
