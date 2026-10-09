@@ -9,7 +9,7 @@
 use defmt::{info};//, 
 // use defmt::Format;
 
-// use heapless::Format;
+use heapless::format;
 use heapless::String;
 
 
@@ -50,6 +50,11 @@ pub struct LineEdit{
 
 }
 
+pub enum ResultValue{
+    Float(f64),
+    Str(String<EDIT_LENGTH>),
+}
+
 impl LineEdit{//<'_>{
     pub fn new()->LineEdit{ 
         let line = String::<EDIT_LENGTH>::new(); 
@@ -68,35 +73,30 @@ impl LineEdit{//<'_>{
     }
 
     // Only called in Entry mode, so we know that the key is a number 
-    // or a decimal point or E or +/-
-    pub fn process_number_keys(&mut self, key: KeyName)->Option<String<EDIT_LENGTH>>{ 
+    // or a decimal point or E or +/-, or Enter or Backspace.
+    pub fn process_number_keys(&mut self, key: KeyName)->Option<ResultValue> { 
 // info!("In process_number_keys***************************************************************** ");
         match key{
             KeyName::Enter => {
-                for c in self.line.chars() {
-                    info!("     pnk: in Enter: line char: {}", c);
-                }
+                info!("Enter key pressed -- in process_number_keys");
+
                 if self.line.chars().last()==Some('E'){
                     info!("     pnk: line ends with E, so adding a 0");
                     self.line.push('0').unwrap();
                 }
                 let result = self.line.parse::<f64>();
+         
                 if result.is_ok() {
-                    let a = result.unwrap();
-                    info!("    pnk: result is ok, parsed value: {}", a);
-
-                    return Some(self.line.clone());
+                    let x: f64 = result.unwrap();
+                    info!("Result is ok, x is {}", x);
+                    return Some(ResultValue::Float(x));
                 } else {
                     info!("    pnk: result is NOT ok");
-                    for c in self.line.chars() {
-                        info!("****** process_number_keys: line char: {}", c);
-                    }
-                    let mut error = String::<EDIT_LENGTH>::new();
-                    error.push_str("Bad num in input").unwrap();
                     return None;
                 }
         
-            },                          //----------------------------**************************************** WORK HERE
+            },        
+            
             KeyName::Back => 
                 if self.line.len()>1 {
                     info!("popping a character from the line");
@@ -121,31 +121,19 @@ impl LineEdit{//<'_>{
                         if self.line.len()<EDIT_LENGTH{
                             let _ =self.line.push('-');
                         }
-                    } 
-                    // else if self.line.as_bytes()[e_pos+1]==b'-' {  // If there's a minus after the E, remove it
-                    //     self.line.remove(e_pos+1);
-                    // } else {                                        // If there's no minus after the E, put one there
-                    //     if self.line.len()<EDIT_LENGTH{
-                    //         let _ =self.line.insert(e_pos+1,'-');
-                    //     }
-                    // }
-                    
-                    
-                    
-                    if self.line.len()>e_pos+1 && self.line.len()<EDIT_LENGTH {
-                        if self.line.as_bytes()[e_pos]==b'-'{
-                            self.line.remove(e_pos);
-                        } else {
-                            if self.line.len()==(e_pos){
-                                let _ =self.line.insert(e_pos, '-');
+                    } else if e_pos+1 < self.line.len() {  // If E is last character, then put a minus after it
+                       info!("something after E, so change sign of that");
+                        if self.line.as_bytes()[e_pos+1]==b'-' {  // If there's a minus after the E, remove it
+                            self.line.remove(e_pos+1);
+                            info!("minus after E");
+                        } else {                                        // If there's no minus after the E, put one there
+                            info!("add minus after E");
+                            if self.line.len()<EDIT_LENGTH{
+                                let _ =self.line.insert(e_pos+1,'-');
                             }
                         }
-                    } 
-                    // else {                        // No E yet, so put minus at begining of number
-                    //     if self.line.len()==(E_pos+1){
-                    //         let _ =self.line.push_str("-");
-                    //     }
-                    // }
+                    }
+
                 } else { // Deal with the case of the mantissa being - or not -
                     if self.line.chars().nth(0) == Some('-'){
                         self.line.remove(0);
@@ -184,7 +172,7 @@ impl LineEdit{//<'_>{
         // let result = self.line.parse::<f64>();
         // result.ok()      
 
-        Some(self.line.clone())
+        Some(ResultValue::Str(self.line.clone()))
     }
 
 

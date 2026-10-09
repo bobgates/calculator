@@ -127,6 +127,13 @@ impl DisplayStackView{
         self.xyzt[0] = n;
     }
 
+    pub fn push_enter_number(&mut self, n: f64){
+        self.xyzt[3] = self.xyzt[2];
+        self.xyzt[2] = self.xyzt[1];
+        self.xyzt[1] = n;
+        self.xyzt[0] = n;
+    }
+
     pub fn pop(&mut self)->f64{
         let n = self.xyzt[0];
         self.xyzt[0] = self.xyzt[1];
@@ -243,6 +250,7 @@ info!("_____________________");
 
         let x_str = 
         if entry_line.is_some(){ // We have a string already
+            info!("--- in update_stack_display: entry_line is some");
             let mut x_str = entry_line.unwrap();
             x_str.push('_').unwrap();
             x_str
@@ -254,7 +262,7 @@ info!("_____________________");
 // There's an error above. This code works, but more or less the same code
 // in lines above does not.
 
-        // info!("e_pos in update_stack_display: {}", e_pos);
+        info!("about to draw one line");
         self.draw_one_line(Some(x_str), DisplayLine::X );    
         self.display.flush().unwrap();       // Flushes internal buffer to the display
 

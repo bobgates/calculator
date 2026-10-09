@@ -63,6 +63,7 @@ use keyboard::{Keyboard, KeyName, ENTER_AND_EDIT_ENTRY_MODE, WORK_IN_ENTRY_MODE}
 
 mod line_edit;
 use line_edit::LineEdit;
+use line_edit::ResultValue;
 use line_edit::EDIT_LENGTH;
 
 // use portable_atomic::AtomicF64;
@@ -209,11 +210,30 @@ async fn main (_spawner: Spawner) {
             Some(k) => k,
             None => continue,
         }; 
-        
+        if key == KeyName::Enter{
+            let entry_line = line_edit.process_number_keys(key); 
+            match entry_line {
+                Some(ResultValue::Str(s)) => {
+                    display.update_stack_display(Some(s.clone()));
+                    info!("entry_line is a string");               
+                 },
+                Some(ResultValue::Float(f)) => {
+                    display.stack_view.push_enter_number(f);
+                    info!("entry_line is a float: {}", f);
+                    display.update_stack_display(None);
+
+                },
+                None => {
+                    info!("entry_line is None");
+                    display.update_stack_display(None);
+                }
+            }   
+        }
         
         if WORK_IN_ENTRY_MODE.contains(key) || ENTER_AND_EDIT_ENTRY_MODE.contains(key) { 
             let entry_line = line_edit.process_number_keys(key);   
-            display.update_stack_display(entry_line);                     
+
+            // match display.update_stack_display(entry_line);                     
             
             
         } 
@@ -296,6 +316,6 @@ async fn main (_spawner: Spawner) {
         //     },
         // }
         // previous_state = machine_state;
-        info!("end of match machine_state in main");
+        info!("end of match machine_state loop in main");
     }
 }
