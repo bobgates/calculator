@@ -176,7 +176,7 @@ pub struct DisplayStruct <'a>{
     number_style: DisplayStyle,
     eline : Option<String<EDIT_LENGTH>>,
     state: crate::State,
-    pub stack_view: DisplayStackView,
+    pub stack_view: &'a mut DisplayStackView,
 }
 
 impl <'a> DisplayStruct <'a>{
@@ -187,7 +187,7 @@ impl <'a> DisplayStruct <'a>{
                 e_font: MonoTextStyle<'a, BinaryColor>,
                 number_style: DisplayStyle,
                 // stack_ref: &'a mut Stack,
-                stack_view: DisplayStackView,
+                stack_view: &'a mut DisplayStackView,
             ) -> Self {
         
         display.reset(&mut reset_pin, &mut Delay).unwrap();

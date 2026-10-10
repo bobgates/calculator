@@ -3,7 +3,8 @@
 // extern crate alloc;
 
 mod calculate;
-use calculate::Calculate;   
+use calculate::Calculate;
+use embedded_graphics::primitives::line;   
 
 // use core::alloc::{GlobalAlloc, Layout};
 use core::{cell::RefCell};
@@ -154,7 +155,7 @@ async fn main (_spawner: Spawner) {
     let number_style = DisplayStyle::E(4);
   
 
-    let stack_view = DisplayStackView::new(
+    let mut stack_view = DisplayStackView::new(
         [0.0, 0.0, 0.0, 0.0],
     );
 
@@ -165,7 +166,7 @@ async fn main (_spawner: Spawner) {
         stacknames_font, //: MonoTextStyle<'a, BinaryColor>,
         e_font, //: MonoTextStyle<'a, BinaryColor>,
         number_style,
-        stack_view
+        &mut stack_view
     );
 
     display.set_on(true);
@@ -193,7 +194,7 @@ async fn main (_spawner: Spawner) {
     );
 
     let mut machine_state: State = State::Entry;
-    let mut calculate : Calculate = Calculate::new(); 
+    let mut calculate : Calculate = Calculate::new(&mut stack_view.xyzt); 
     display.set_number_style(DisplayStyle::E(3));
     display.update_stack_display(None);     // Put out initial stack display - all zeros, no entry line
     let mut line_edit = LineEdit::new();
@@ -210,17 +211,21 @@ async fn main (_spawner: Spawner) {
             Some(k) => k,
             None => continue,
         }; 
-        if key == KeyName::Enter{
-            let entry_line = line_edit.process_number_keys(key); 
+        
+        if key == KeyName::Enter|| WORK_IN_ENTRY_MODE.contains(key) || ENTER_AND_EDIT_ENTRY_MODE.contains(key){
+            info!("_____ Process line edit key: {}", key);
+            let mut entry_line = line_edit.process_number_keys(key); 
             match entry_line {
                 Some(ResultValue::Str(s)) => {
                     display.update_stack_display(Some(s.clone()));
-                    info!("entry_line is a string");               
+                    info!("enter entry_line is a string");               
                  },
                 Some(ResultValue::Float(f)) => {
                     display.stack_view.push_enter_number(f);
                     info!("entry_line is a float: {}", f);
                     display.update_stack_display(None);
+                    line_edit.clear();
+                    entry_line = None;  // Clear the entry line after processing it
 
                 },
                 None => {
@@ -228,94 +233,10 @@ async fn main (_spawner: Spawner) {
                     display.update_stack_display(None);
                 }
             }   
-        }
-        
-        if WORK_IN_ENTRY_MODE.contains(key) || ENTER_AND_EDIT_ENTRY_MODE.contains(key) { 
-            let entry_line = line_edit.process_number_keys(key);   
-
-            // match display.update_stack_display(entry_line);                     
-            
-            
-        } 
-            // info!("------Enty ");
-        
-
-        // // Take a careful look at the logic that follows:
-
-        // if skip_key {
-        //     info!("skip_key");
-        //     skip_key = false;
-        //     continue;   // goes to top of loop
-        // } 
-        // let key = pkey.unwrap();                        // setting skip_key
-        // info!("main: {} key pressed", key);  
-        // skip_key = false;
-               
-        // match machine_state {
-        //     State::Entry => {
-        //         info!("Main: State::Entry");
-        //         if WORK_IN_ENTRY_MODE.contains(key) || ENTER_AND_EDIT_ENTRY_MODE.contains(key) { // info!("------Enty ");
-        //             info!("Entry key: {}", key);
-        //             let entry_line = line_edit.process_number_keys(key);
-        //             info!("entry_line:");
-        //             if entry_line.is_some() {
-        //                 let el = entry_line.as_ref().unwrap();
-        //                 for c in el.chars() {
-        //                     info!("entry_line char: {}", c);
-        //                 }
-        //             }
-        //             display.update_stack_display(entry_line);
-        //         } else {  // We've hit a key that takes out of entry, now we need to act
-        //             let x: f64 = line_edit.line.parse::<f64>().unwrap();    
-        //             display.stack_view.xyzt[0] = x;
-        //             previous_state = machine_state;                       
-        //             machine_state = State::Calculating;
-
-        //             info!("Going to Calculating state in main");
-        //             skip_key = true
-        //         }
-        //     },
-        //     State::Calculating => {
-        //         info!("State: calculating - key is: {}", key);
-        //         skip_key = false;
-                
-        //         match key {
-        //             KeyName::Back => {
-        //                 display.stack_view.xyzt[0] = 0.0;   
-
-        //                 info!("In the process of Back key in calculating state");
-        //                 // calculate.process_calculate_key(key);
-        //             },
-        //             // KeyName ::Enter => {
-        //             //     display.stack_view.push();
-        //             //     info!("In the process of the Enter key in calculating state");
-        //             //     // calculate.process_calculate_key(key);
-        //             // },
-        //             KeyName::Enter => {
-        //                 let x = line_edit.line.parse::<f64>().unwrap();
-        //                 display.stack_view.push_number(x);
-        //             },
-        //             KeyName::Plus => {
-        //                 display.stack_view.binary_op(KeyName::Plus);
-        //             }
-        //             KeyName::Minus => {
-        //                 display.stack_view.binary_op(KeyName::Minus);
-        //             }
-        //             KeyName::Multiply => {
-        //                 display.stack_view.binary_op(KeyName::Multiply);
-        //             }
-        //             KeyName::Divide => {
-        //                 display.stack_view.binary_op(KeyName::Divide);
-        //             }
-        //             _ => {info!("\t\tI don't yet know how to process {}", key)},
-        //         }
-                
-        //         display.update_stack_display(None);
-        //         info!("End of state calculating");
-
-        //     },
-        // }
-        // previous_state = machine_state;
+        } else {
+            info!("_____ Process calulate key: {}", key);
+            calculate.process_calculate_key(key);
+        };        
         info!("end of match machine_state loop in main");
-    }
+    };
 }

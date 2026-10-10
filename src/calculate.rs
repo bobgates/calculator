@@ -1,31 +1,30 @@
 use defmt::info;
 
 use crate::keyboard::KeyName;
-// use crate::stack::Stack;
+use crate::display::DisplayStackView;
 
-pub struct Calculate {//<'a>{
-    // stack: &'a mut Stack,
+pub struct Calculate<'a> {//<'a>{
+    stack: &'a mut [f64;4],
 }
 
-impl Calculate {
+impl <'a>Calculate<'a>{
+    pub fn new(display_stack: &'a mut [f64;4])->Self{
+        info!("creating stack");
+        Self {
+            stack: display_stack,
+        }
+    }
 
 // Okay - figure out how to get reference to the stack here so
 // that calculations can be applied.
 
 
-    pub fn new()->Self{
-        info!("creating stack");
-        Self {
-            // stack: stack_ref,
-        }
-    }
-
-
     pub fn process_calculate_key(&mut self, key: KeyName){
         info!("process_calculate_key: {}", key);      
         match key{
-            KeyName::Enter => {
-                info!("In the process of the Enter key");
+            KeyName::Plus => {
+                info!("In the process of the Plus key");
+
 
                 // if the line_edit buffer has something in it
                 // convert it to a number and put it on the stack
