@@ -4,23 +4,15 @@
 
 mod calculate;
 use calculate::Calculate;
-use embedded_graphics::primitives::line;   
+// use embedded_graphics::primitives::line;   
 
 // use core::alloc::{GlobalAlloc, Layout};
 use core::{cell::RefCell};
 // use core::{fmt::Display};
 // use core::mem::MaybeUninit;
-use core::ptr::null_mut;
+// use core::ptr::null_mut;
 // use core::sync::atomic::Ordering;
 use cortex_m::asm::delay;
-// use cortex_m_rt::entry;
-// use defmt::*;
-// use defmt::{Format};
-
-// use crate::State::EnterEntry;
-
-//use crate::line_edit::EDIT_LENGTH;
-
 
 use {defmt_rtt as _, panic_probe as _};
 
@@ -29,7 +21,6 @@ use defmt::info; //enables info! for debugging;
 mod display;
 use display::DisplayStruct;
 use display::DisplayStyle;
-// use display::DisplayLine;
 use display_interface_spi::SPIInterface;
 use display::DisplayStackView;
 
@@ -39,8 +30,6 @@ use embassy_executor::Spawner;
 use embassy_rp::gpio::{Level, Output};
 use embassy_rp::gpio::{Input, Pull};
 use embassy_rp::peripherals::{SPI0};
-// use embassy_rp::{Peri, PeripheralType};
-// use embassy_rp::rom_data::{self, flash_reset_address_trans};
 use embassy_rp::spi;
 use embassy_rp::spi::{Blocking, Spi};// ClkPin, Config, MisoPin, MosiPin,
 
@@ -57,7 +46,7 @@ mod flash_led;
 use flash_led::FlashLed;
 
 // use heapless::string::StringInner;
-use heapless::String; //, format};
+// use heapless::String; //, format};
 
 mod keyboard;
 use keyboard::{Keyboard, KeyName, ENTER_AND_EDIT_ENTRY_MODE, WORK_IN_ENTRY_MODE};
@@ -65,7 +54,7 @@ use keyboard::{Keyboard, KeyName, ENTER_AND_EDIT_ENTRY_MODE, WORK_IN_ENTRY_MODE}
 mod line_edit;
 use line_edit::LineEdit;
 use line_edit::ResultValue;
-use line_edit::EDIT_LENGTH;
+// use line_edit::EDIT_LENGTH;
 
 // use portable_atomic::AtomicF64;
 
@@ -74,33 +63,7 @@ use st7565::displays::DOGL128_6;
 use st7565::ST7565;
 use st7565::modes::GraphicsMode;
 
-// mod stack;
-// use stack::Stack;
-// pub struct Stack {
-//     entries: [f64; 4]//;// pub data: Rc<RefCell<[f64; STACK_DEPTH]>>,
-//     //    last_x: Rc<RefCell<f64>>,
-// }
-// impl Stack{
-//     pub fn new()->Stack{
-//         Stack {
-//             entries: [0.0; 4],
-//         }
-//     }
-// }
-
-// struct StubAllocator;
-// unsafe impl GlobalAlloc for StubAllocator {
-//     unsafe fn alloc(&self, _layout: Layout ) -> *mut u8 {
-//         null_mut()
-//     }
-//     unsafe fn dealloc(&self, _ptr: *mut u8, _layout: Layout){
-//         //Stub no-op
-//     }
-// }
-
-// #[global_allocator] // Dummy, but has to be here for the system to work
-// static ALLOCATOR: StubAllocator = StubAllocator;
-
+mod stack;
 
 use {defmt_rtt as _, panic_probe as _};
 
@@ -119,10 +82,7 @@ pub static PICOTOOL_ENTRIES: [embassy_rp::binary_info::EntryAddr; 4] = [
 
 #[derive(Clone, Debug, Copy, PartialEq)]
 pub enum State {
-    // EnterEntry,
     Entry,
-    // EnterCalculating,
-    // LeaveEntry,
     Calculating,
 }
 
@@ -193,15 +153,15 @@ async fn main (_spawner: Spawner) {
         ],
     );
 
-    let mut machine_state: State = State::Entry;
+    // let mut _machine_state: State = State::Entry;
     let mut calculate : Calculate = Calculate::new(&mut stack_view.xyzt); 
     display.set_number_style(DisplayStyle::E(3));
     display.update_stack_display(None);     // Put out initial stack display - all zeros, no entry line
     let mut line_edit = LineEdit::new();
-    let mut previous_state: State = machine_state;
+    // let mut previous_state: State = machine_state;
 
     // let mut skip_key = false;  // Can't remember why I wanted to do this?
-    let mut editing : bool = false;
+    // let mut editing : bool = false;
 
     // ******************************************************************************************** //
     loop{

@@ -28,9 +28,10 @@ use embedded_graphics::text::Text;
 
 use heapless::{format, String}; 
 use crate::keyboard::KeyName;
-use crate::keyboard::Keyboard;
+// use crate::keyboard::Keyboard;
 use crate::line_edit::{EDIT_LENGTH};//LineEdit
 
+// use crate::stack;
 
 use st7565::displays::DOGL128_6;
 pub use st7565::ST7565;
@@ -89,6 +90,9 @@ impl DisplayLine {
 #[derive(Clone, Debug)]
 pub struct DisplayStackView{
     // pub x_str: Option<String<EDIT_LENGTH>>,
+    
+
+
     pub xyzt: [f64;4],
     pub ds:DisplayStyle,
 }
@@ -106,7 +110,7 @@ impl DisplayStackView{
         self.ds = ds;
     }
 
-    pub fn set_all(&mut self, a: Option<String<EDIT_LENGTH>>, xyzt: [f64; 4]) {
+    pub fn set_all(&mut self, _a: Option<String<EDIT_LENGTH>>, xyzt: [f64; 4]) {
         // self.x_str = a;
         self.xyzt = xyzt;
     }
@@ -319,7 +323,7 @@ info!("_____________________");
         if e_pos.is_some() {
             let _ = Text::new("E", Point::new(NUM_LEFT + NUM_WIDTH * e_pos.unwrap()as i32 + 2, number_bottom-2), self.e_font).draw(&mut self.display);
         }
-        let (line, _e_pos)= self.replace_letter(&line, ' ', 'E');
+        let (_line, _e_pos)= self.replace_letter(&line, ' ', 'E');
         //info!("leaving:");
         // for (i, c) in line.chars().enumerate(){
         //     info!("{}-{}", i,c);
@@ -338,10 +342,10 @@ pub fn num_to_string(number_style: DisplayStyle, number: &f64 )->String<EDIT_LEN
         let mut output: String<EDIT_LENGTH>=format!("").unwrap();
         let _ = output.push('0');
         let _ = output.push('.');
-        let mut pos=0;
+        // let mut pos=0;
         match number_style {
             DisplayStyle::E(sf) => {
-                pos = sf+2;
+                // pos = sf+2;
                 for _ in 0..sf {
                     let _ = output.push('0');
                 }

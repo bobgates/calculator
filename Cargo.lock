@@ -133,6 +133,7 @@ dependencies = [
  "panic-probe",
  "portable-atomic",
  "profont",
+ "spin",
  "st7565",
 ]
 
@@ -1371,6 +1372,15 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "0bc64ee02bbbf469603016df746c0ed224f263280b6ebb49b7ebadbff375c572"
 dependencies = [
  "rgb",
+]
+
+[[package]]
+name = "spin"
+version = "0.12.3"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "0134f9043ed38b087ac4f7d4af44c79e2c9e5094421fe3164f435ce585953b10"
+dependencies = [
+ "lock_api",
 ]
 
 [[package]]
