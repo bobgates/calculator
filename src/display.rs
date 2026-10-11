@@ -31,7 +31,7 @@ use crate::keyboard::KeyName;
 // use crate::keyboard::Keyboard;
 use crate::line_edit::{EDIT_LENGTH};//LineEdit
 
-// use crate::stack;
+use crate::stack::STACK;
 
 use st7565::displays::DOGL128_6;
 pub use st7565::ST7565;
@@ -89,19 +89,17 @@ impl DisplayLine {
 
 #[derive(Clone, Debug)]
 pub struct DisplayStackView{
-    // pub x_str: Option<String<EDIT_LENGTH>>,
-    
-
-
-    pub xyzt: [f64;4],
+    pub stack: [f64; 4],
     pub ds:DisplayStyle,
 }
 
 impl DisplayStackView{
-    pub fn new( /*x: Option<String<EDIT_LENGTH>>,*/ xyzt: [f64;4])->DisplayStackView {
+    pub fn new()->DisplayStackView {
+
+        let stack = STACK.lock().fetch_all().into();
+
         DisplayStackView{
-            // x_str: x,
-            xyzt,
+            stack,
             ds: DisplayStyle::E(4),
         }
     }
@@ -110,9 +108,9 @@ impl DisplayStackView{
         self.ds = ds;
     }
 
-    pub fn set_all(&mut self, _a: Option<String<EDIT_LENGTH>>, xyzt: [f64; 4]) {
+    pub fn set_all(&mut self, _a: Option<String<EDIT_LENGTH>>, stack: [f64; 4]) {
         // self.x_str = a;
-        self.xyzt = xyzt;
+        self.stack = stack;
     }
 
     pub fn get_all(&self)->DisplayStackView{
@@ -120,49 +118,49 @@ impl DisplayStackView{
     }
 
     pub fn push(&mut self){
-        self.xyzt[3] = self.xyzt[2];
-        self.xyzt[2] = self.xyzt[1];
-        self.xyzt[1] = self.xyzt[0];
+        self.stack[3] = self.stack[2];
+        self.stack[2] = self.stack[1];
+        self.stack[1] = self.stack[0];
     }
     pub fn push_number(&mut self, n: f64){
-        self.xyzt[3] = self.xyzt[2];
-        self.xyzt[2] = self.xyzt[1];
-        self.xyzt[1] = self.xyzt[0];
-        self.xyzt[0] = n;
+        self.stack[3] = self.stack[2];
+        self.stack[2] = self.stack[1];
+        self.stack[1] = self.stack[0];
+        self.stack[0] = n;
     }
 
     pub fn push_enter_number(&mut self, n: f64){
-        self.xyzt[3] = self.xyzt[2];
-        self.xyzt[2] = self.xyzt[1];
-        self.xyzt[1] = n;
-        self.xyzt[0] = n;
+        self.stack[3] = self.stack[2];
+        self.stack[2] = self.stack[1];
+        self.stack[1] = n;
+        self.stack[0] = n;
     }
 
     pub fn pop(&mut self)->f64{
-        let n = self.xyzt[0];
-        self.xyzt[0] = self.xyzt[1];
-        self.xyzt[1] = self.xyzt[2];
-        self.xyzt[2] = self.xyzt[3];
+        let n = self.stack[0];
+        self.stack[0] = self.stack[1];
+        self.stack[1] = self.stack[2];
+        self.stack[2] = self.stack[3];
         n
     }
 
     pub fn plus(&mut self){
-        self.xyzt[0] += self.xyzt[1];
-        self.xyzt[1] = self.xyzt[2];
-        self.xyzt[2] = self.xyzt[3];
+        self.stack[0] += self.stack[1];
+        self.stack[1] = self.stack[2];
+        self.stack[2] = self.stack[3];
     }
 
     pub fn binary_op(&mut self, operator: KeyName){
          
         match operator {
-            KeyName::Plus =>  self.xyzt[0] += self.xyzt[1],
-            KeyName::Minus =>  self.xyzt[0] -= self.xyzt[1],
-            KeyName::Multiply =>  self.xyzt[0] *= self.xyzt[1],
-            KeyName::Divide => { self.xyzt[1] /= self.xyzt[0]; self.pop();},
+            KeyName::Plus =>  self.stack[0] += self.stack[1],
+            KeyName::Minus =>  self.stack[0] -= self.stack[1],
+            KeyName::Multiply =>  self.stack[0] *= self.stack[1],
+            KeyName::Divide => { self.stack[1] /= self.stack[0]; self.pop();},
             _ => {},
         }
-        self.xyzt[1] = self.xyzt[2];
-        self.xyzt[2] = self.xyzt[3];
+        self.stack[1] = self.stack[2];
+        self.stack[2] = self.stack[3];
     }
 
 
@@ -215,9 +213,7 @@ info!("_____________________");
     }
 
    // Converts an f64 into a string with the correct number of significant figures, 
-   // and returns the position of the 'E' if it is present
-
-    
+   // and returns the position of the 'E' if it is present    
     pub fn set_number_style(&mut self, ds: DisplayStyle){
         self.number_style = ds;
     }
@@ -245,11 +241,15 @@ info!("_____________________");
         self.stack_view.set_format(DisplayStyle::E(4));
 
         let sv = self.stack_view.get_all();
-        let y_str = num_to_string(sv.ds, &sv.xyzt[1]);
+
+
+
+
+        let y_str = num_to_string(sv.ds, &sv.stack[1]);
         self.draw_one_line(Some(y_str),  DisplayLine::Y );            
-        let z_str = num_to_string(sv.ds, &sv.xyzt[2]);
+        let z_str = num_to_string(sv.ds, &sv.stack[2]);
         self.draw_one_line(Some(z_str),DisplayLine::Z );            
-        let t_str = num_to_string(sv.ds, &sv.xyzt[3]);
+        let t_str = num_to_string(sv.ds, &sv.stack[3]);
         self.draw_one_line(Some(t_str),DisplayLine::T );            
 
         let x_str = 
@@ -259,7 +259,7 @@ info!("_____________________");
             x_str.push('_').unwrap();
             x_str
         } else {
-            num_to_string(sv.ds, &sv.xyzt[0])
+            num_to_string(sv.ds, &sv.stack[0])
         };
 
 

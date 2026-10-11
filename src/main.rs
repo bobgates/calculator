@@ -115,9 +115,7 @@ async fn main (_spawner: Spawner) {
     let number_style = DisplayStyle::E(4);
   
 
-    let mut stack_view = DisplayStackView::new(
-        [0.0, 0.0, 0.0, 0.0],
-    );
+    let mut stack_view = DisplayStackView::new();
 
     let mut display = DisplayStruct::new(
         display, //: ST7565<SPIInterface<embassy_embedded_hal::shared_bus::blocking::spi::SpiDeviceWithConfig<'a, NoopRawMutex, embassy_rp::spi::Spi<'a, SPI0, embassy_rp::spi::Blocking>, Output<'a>>, Output<'a>>, DOGL128_6, GraphicsMode<'a, 128, 8>, 128, 64, 8>,
@@ -154,7 +152,7 @@ async fn main (_spawner: Spawner) {
     );
 
     // let mut _machine_state: State = State::Entry;
-    let mut calculate : Calculate = Calculate::new(&mut stack_view.xyzt); 
+    let mut calculate : Calculate = Calculate::new(&mut stack_view.stack); 
     display.set_number_style(DisplayStyle::E(3));
     display.update_stack_display(None);     // Put out initial stack display - all zeros, no entry line
     let mut line_edit = LineEdit::new();

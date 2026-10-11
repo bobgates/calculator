@@ -1,9 +1,15 @@
 use defmt::info;
 
 use crate::keyboard::KeyName;
+use crate::stack::STACK;
+
+
+
 // use crate::display::DisplayStackView;
 
 pub struct Calculate<'a> {//<'a>{
+    // temp_stack = 
+
     stack: &'a mut [f64;4],
 }
 
@@ -11,6 +17,7 @@ pub struct Calculate<'a> {//<'a>{
 
 impl <'a>Calculate<'a>{
     pub fn new(display_stack: &'a mut [f64;4])->Self{
+        
         info!("creating stack");
         Self {
             stack: display_stack,
