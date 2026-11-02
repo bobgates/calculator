@@ -1,14 +1,16 @@
 // This file contains the Stack struct and its implementation. 
 // The Stack struct is used to manage the stack of numbers in the calculator. 
 // It provides methods to push and pop numbers from the stack, as well as to 
-// get the current state of the stack.
+// get the current state of the stack.  
 
-
+use crate::display::DisplayStyle;
 // #[derive(Copy, Clone)]
 use spin::Mutex;
 
 #[derive(Copy, Clone)]
 pub struct Stack(f64, f64, f64, f64, bool, usize);
+
+pub static DISPLAY_STYLE: Mutex<DisplayStyle> = Mutex::new(DisplayStyle::E(4));
 
 pub static STACK: Mutex< Stack> = Mutex::new(Stack(0.0, 0.0, 0.0, 0.0, false, 0));
 
@@ -59,58 +61,71 @@ const NUMBERS_B: &'static [f64] = &[
 
 impl Stack {
     pub fn new(x: f64, y: f64, z: f64, t: f64, changed: bool, index: usize)-> Stack{
-        Stack ( x, y, z, t, changed, index)
+        // let stack = STACK.lock().fetch_all();
+        // stack = 
+        Stack( x, y, z, t, changed, index )
      }
     
-    pub fn push(&mut self, x: f64) {
-        self.3 = self.2;
-        self.2 = self.1;
-        self.1 = self.0;
-        self.0 = x;
-        self.4 = true;
+    pub fn push( x: f64) {
+        let mut stack = STACK.lock().fetch_all();
+
+        stack.3 = stack.2;
+        stack.2 = stack.1;
+        stack.1 = stack.0;
+        stack.0 = x;
+        stack.4 = true;
         // Leaves x in y and in x
     }
 
     // Pops and returns bottom, x, value
     pub fn pop(&mut self)-> f64 {
-        let temp = self.0;
-        self.0 = self.1;
-        self.1 = self.2;
-        self.2 = self.3;
-        self.4 = true;
+        let mut stack = STACK.lock().fetch_all();
+
+        let temp = stack.0;
+        stack.0 = stack.1;
+        stack.1 = stack.2;
+        stack.2 = stack.3;
+        stack.4 = true;
         // Leaves a in a and in z
         temp
     }
-    pub fn set_changed(&mut self) { // todo! make this private and only set when a push or pop occurs
-        self.4 = true;
-    }
+    // pub fn set_changed(&mut self) { // todo! make this private and only set when a push or pop occurs
+    //     stack.4 = true;
+    // }
     pub fn changed(&mut self)->bool{
-        self.4
+        let stack = STACK.lock().fetch_all();
+        stack.4
     }
     
-    pub fn fetch_all(&mut self) -> (f64, f64, f64, f64){
-        (self.0, self.1, self.2, self.3)
+    pub fn fetch_all(&mut self) -> (f64, f64, f64, f64, bool, usize){
+        let stack = STACK.lock().fetch_all();
+        (stack.0, stack.1, stack.2, stack.3, stack.4, stack.5)
     }
 
     pub fn swapxy(&mut self){
-        let temp = self.0;
-        self.0 = self.1;
-        self.1 = temp;
+        let mut stack = STACK.lock().fetch_all();
+        let temp = stack.0;
+        stack.0 = stack.1;
+        stack.1 = temp;
     }
 
 
     pub fn swapx_with_new_y(&mut self, new_y: f64){
-        self.0 = self.1;
-        self.1 = new_y;
+        let mut stack = STACK.lock().fetch_all();
+
+        stack.0 = stack.1;
+        stack.1 = new_y;
     }
 
 
-    pub fn get_x(&mut self)->f64{
-        return self.0;
+    pub fn get_x(&mut self)->f64{        
+        let stack = STACK.lock().fetch_all();
+        return stack.0;
     }
     
     pub fn get_y(&mut self)->f64{
-        return self.1;
+        let stack = STACK.lock().fetch_all();
+        return stack.1;
     }
 
 }

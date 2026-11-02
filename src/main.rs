@@ -22,7 +22,7 @@ mod display;
 use display::DisplayStruct;
 use display::DisplayStyle;
 use display_interface_spi::SPIInterface;
-use display::DisplayStackView;
+// use display::DisplayStackView;
 
 use embassy_embedded_hal::shared_bus::blocking::spi::SpiDeviceWithConfig;
 use embassy_executor::Spawner;
@@ -64,6 +64,7 @@ use st7565::ST7565;
 use st7565::modes::GraphicsMode;
 
 mod stack;
+use crate::stack::STACK;
 
 use {defmt_rtt as _, panic_probe as _};
 
@@ -115,7 +116,7 @@ async fn main (_spawner: Spawner) {
     let number_style = DisplayStyle::E(4);
   
 
-    let mut stack_view = DisplayStackView::new();
+    // let mut stack = Stack::new();
 
     let mut display = DisplayStruct::new(
         display, //: ST7565<SPIInterface<embassy_embedded_hal::shared_bus::blocking::spi::SpiDeviceWithConfig<'a, NoopRawMutex, embassy_rp::spi::Spi<'a, SPI0, embassy_rp::spi::Blocking>, Output<'a>>, Output<'a>>, DOGL128_6, GraphicsMode<'a, 128, 8>, 128, 64, 8>,
@@ -124,7 +125,7 @@ async fn main (_spawner: Spawner) {
         stacknames_font, //: MonoTextStyle<'a, BinaryColor>,
         e_font, //: MonoTextStyle<'a, BinaryColor>,
         number_style,
-        &mut stack_view
+        // &mut stack_view
     );
 
     display.set_on(true);
@@ -152,14 +153,20 @@ async fn main (_spawner: Spawner) {
     );
 
     // let mut _machine_state: State = State::Entry;
-    let mut calculate : Calculate = Calculate::new(&mut stack_view.stack); 
+// info!("before calculate");
+    let mut calculate : Calculate = Calculate::new(); 
+// info!("after calculate");
+
     display.set_number_style(DisplayStyle::E(3));
+info!("after calculate and set number style");
+
     display.update_stack_display(None);     // Put out initial stack display - all zeros, no entry line
     let mut line_edit = LineEdit::new();
     // let mut previous_state: State = machine_state;
 
     // let mut skip_key = false;  // Can't remember why I wanted to do this?
     // let mut editing : bool = false;
+info!("before main loop");
 
     // ******************************************************************************************** //
     loop{
@@ -169,6 +176,7 @@ async fn main (_spawner: Spawner) {
             Some(k) => k,
             None => continue,
         }; 
+        info!("key entered");
         
         if key == KeyName::Enter|| WORK_IN_ENTRY_MODE.contains(key) || ENTER_AND_EDIT_ENTRY_MODE.contains(key){
             info!("_____ Process line edit key: {}", key);
@@ -179,7 +187,13 @@ async fn main (_spawner: Spawner) {
                     info!("enter entry_line is a string");               
                  },
                 Some(ResultValue::Float(f)) => {
-                    display.stack_view.push_enter_number(f);
+                    { let mut stack  = STACK.lock().fetch_all();
+                        stack.3 = stack.2;
+                        stack.2 = stack.1;
+                        stack.1 = stack.0;
+                        stack.0 = f;
+                    }
+                    // stack_view.push_enter_number(f);
                     info!("entry_line is a float: {}", f);
                     display.update_stack_display(None);
                     line_edit.clear();
@@ -194,6 +208,7 @@ async fn main (_spawner: Spawner) {
         } else {
             info!("_____ Process calulate key: {}", key);
             calculate.process_calculate_key(key);
+            display.update_stack_display(None);
         };        
         info!("end of match machine_state loop in main");
     };

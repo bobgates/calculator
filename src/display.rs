@@ -28,18 +28,17 @@ use embedded_graphics::text::Text;
 
 use heapless::{format, String}; 
 use crate::keyboard::KeyName;
-// use crate::keyboard::Keyboard;
-use crate::line_edit::{EDIT_LENGTH};//LineEdit
+use crate::line_edit::{EDIT_LENGTH};
 
 use crate::stack::STACK;
+use crate::stack::DISPLAY_STYLE;
+
 
 use st7565::displays::DOGL128_6;
 pub use st7565::ST7565;
 use st7565::modes::GraphicsMode;
 
-// use crate::stack::Stack;
 use crate::State::Calculating;
-// use crate::XLine::Number;
 use num_traits::float::FloatCore;
 
 const NUMBER_BOTTOM: i32 = 62;
@@ -76,7 +75,7 @@ pub enum DisplayLine{
     Z,
     T,
 }
-impl DisplayLine {
+impl DisplayStyle {
     fn to_letter(self, input: DisplayLine)->char{
         match input {
             DisplayLine::T => 'T',
@@ -85,86 +84,10 @@ impl DisplayLine {
             DisplayLine::X => 'X',
         }
     }
-}
 
-#[derive(Clone, Debug)]
-pub struct DisplayStackView{
-    pub stack: [f64; 4],
-    pub ds:DisplayStyle,
-}
-
-impl DisplayStackView{
-    pub fn new()->DisplayStackView {
-
-        let stack = STACK.lock().fetch_all().into();
-
-        DisplayStackView{
-            stack,
-            ds: DisplayStyle::E(4),
-        }
+    fn fetch_all(&mut self) -> DisplayStyle{
+        DisplayStyle::E(4)
     }
-
-    pub fn set_format(&mut self, ds: DisplayStyle) {
-        self.ds = ds;
-    }
-
-    pub fn set_all(&mut self, _a: Option<String<EDIT_LENGTH>>, stack: [f64; 4]) {
-        // self.x_str = a;
-        self.stack = stack;
-    }
-
-    pub fn get_all(&self)->DisplayStackView{
-        self.clone()
-    }
-
-    pub fn push(&mut self){
-        self.stack[3] = self.stack[2];
-        self.stack[2] = self.stack[1];
-        self.stack[1] = self.stack[0];
-    }
-    pub fn push_number(&mut self, n: f64){
-        self.stack[3] = self.stack[2];
-        self.stack[2] = self.stack[1];
-        self.stack[1] = self.stack[0];
-        self.stack[0] = n;
-    }
-
-    pub fn push_enter_number(&mut self, n: f64){
-        self.stack[3] = self.stack[2];
-        self.stack[2] = self.stack[1];
-        self.stack[1] = n;
-        self.stack[0] = n;
-    }
-
-    pub fn pop(&mut self)->f64{
-        let n = self.stack[0];
-        self.stack[0] = self.stack[1];
-        self.stack[1] = self.stack[2];
-        self.stack[2] = self.stack[3];
-        n
-    }
-
-    pub fn plus(&mut self){
-        self.stack[0] += self.stack[1];
-        self.stack[1] = self.stack[2];
-        self.stack[2] = self.stack[3];
-    }
-
-    pub fn binary_op(&mut self, operator: KeyName){
-         
-        match operator {
-            KeyName::Plus =>  self.stack[0] += self.stack[1],
-            KeyName::Minus =>  self.stack[0] -= self.stack[1],
-            KeyName::Multiply =>  self.stack[0] *= self.stack[1],
-            KeyName::Divide => { self.stack[1] /= self.stack[0]; self.pop();},
-            _ => {},
-        }
-        self.stack[1] = self.stack[2];
-        self.stack[2] = self.stack[3];
-    }
-
-
-
 }
 
 // #[derive(EnumSetType, Debug, Format)]
@@ -178,7 +101,7 @@ pub struct DisplayStruct <'a>{
     number_style: DisplayStyle,
     eline : Option<String<EDIT_LENGTH>>,
     state: crate::State,
-    pub stack_view: &'a mut DisplayStackView,
+    // pub stack_view: &'a mut DisplayStackView,
 }
 
 impl <'a> DisplayStruct <'a>{
@@ -189,7 +112,7 @@ impl <'a> DisplayStruct <'a>{
                 e_font: MonoTextStyle<'a, BinaryColor>,
                 number_style: DisplayStyle,
                 // stack_ref: &'a mut Stack,
-                stack_view: &'a mut DisplayStackView,
+                // stack_view: &'a mut DisplayStackView,
             ) -> Self {
         
         display.reset(&mut reset_pin, &mut Delay).unwrap();
@@ -208,7 +131,7 @@ info!("_____________________");
             number_style,
             eline: None,
             state: Calculating,
-            stack_view: stack_view,
+            // stack_view: stack_view,
         }
     }
 
@@ -230,26 +153,45 @@ info!("_____________________");
         self.display.flush().unwrap(); 
     }
 
-
-
     // Updates the display with the current stack values and the current entry line
     // if it is active, or stack x value if it is not.
+
+    // Needs to be called after every change to the stack or entry line, 
+    // so that the display is always up to date.
+
+
     pub fn update_stack_display(&mut self, entry_line: Option<String<EDIT_LENGTH>>) {
         
         self.display.clear(BinaryColor::Off);        
 
-        self.stack_view.set_format(DisplayStyle::E(4));
+        // self.stack_view.set_format(DisplayStyle::E(4));
 
-        let sv = self.stack_view.get_all();
+// info!("Before locks in update stack display");
+        let ds = DISPLAY_STYLE.lock().fetch_all();
+
+info!("After DS lock in update_stack_display");
+        
+        let mut st = (0.0, 0.0, 0.0, 0.0, false, 0); 
+        //STACK.lock().fetch_all();
+info!("here in update_stack_display");
+        
+        
+        // { st = STACK.lock().fetch_all();}
+
+info!("After stack lock");
+
+        
+        // let st = self.stack.fetch_all();
+        // let ds = self.stack_view.ds;
+// info!("ds is {}", ds);
+info!("st0 is {}, st4 is {}", st.0, st.4);
 
 
-
-
-        let y_str = num_to_string(sv.ds, &sv.stack[1]);
+        let y_str = num_to_string(ds, &st.1);
         self.draw_one_line(Some(y_str),  DisplayLine::Y );            
-        let z_str = num_to_string(sv.ds, &sv.stack[2]);
+        let z_str = num_to_string(ds, &st.2);
         self.draw_one_line(Some(z_str),DisplayLine::Z );            
-        let t_str = num_to_string(sv.ds, &sv.stack[3]);
+        let t_str = num_to_string(ds, &st.3);
         self.draw_one_line(Some(t_str),DisplayLine::T );            
 
         let x_str = 
@@ -259,7 +201,8 @@ info!("_____________________");
             x_str.push('_').unwrap();
             x_str
         } else {
-            num_to_string(sv.ds, &sv.stack[0])
+            info!("--- in update_stack_display: entry_line is none");
+            num_to_string(ds, &st.0)
         };
 
 
@@ -293,6 +236,8 @@ info!("_____________________");
 
     pub fn draw_one_line(&mut self, entry_line: Option<String<EDIT_LENGTH>>, target: DisplayLine){   // e_pos: Option<i32>,
   
+        info!("In draw_one_line");
+
         if entry_line.is_none(){
             info!("entry_line is none in dislay.draw_one_line");
             return;
@@ -324,10 +269,6 @@ info!("_____________________");
             let _ = Text::new("E", Point::new(NUM_LEFT + NUM_WIDTH * e_pos.unwrap()as i32 + 2, number_bottom-2), self.e_font).draw(&mut self.display);
         }
         let (_line, _e_pos)= self.replace_letter(&line, ' ', 'E');
-        //info!("leaving:");
-        // for (i, c) in line.chars().enumerate(){
-        //     info!("{}-{}", i,c);
-        // }
 
     }
 }

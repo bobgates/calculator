@@ -2,25 +2,30 @@ use defmt::info;
 
 use crate::keyboard::KeyName;
 use crate::stack::STACK;
+use crate::stack::Stack;
+
 
 
 
 // use crate::display::DisplayStackView;
 
-pub struct Calculate<'a> {//<'a>{
+pub struct Calculate {//<'a>{
     // temp_stack = 
 
-    stack: &'a mut [f64;4],
+    // stack: &'a mut [f64;4],
 }
 
 
 
-impl <'a>Calculate<'a>{
-    pub fn new(display_stack: &'a mut [f64;4])->Self{
+impl <'a>Calculate{
+    pub fn new()->Self{ //display_stack: &'a mut [f64;4])->Self{
         
-        info!("creating stack");
-        Self {
-            stack: display_stack,
+        // info!("creating stack");
+        // Self {
+        //     stack: display_stack,
+        // }
+        Self{
+            
         }
     }
 
@@ -29,10 +34,19 @@ impl <'a>Calculate<'a>{
 
 
     pub fn process_calculate_key(&mut self, key: KeyName){
-        info!("process_calculate_key: {}", key);      
+        info!("process_calculate_key: {}", key);    
+
+
+
+        let mut stack  = STACK.lock().fetch_all();
+        info!("x = {}, y = {}, z = {}, t = {}", stack.0, stack.1, stack.2, stack.3);
         match key{
             KeyName::Plus => {
                 info!("In the process of the Plus key");
+                stack.0 = stack.1 + stack.0;
+                stack.1 = stack.2;
+                stack.2 = stack.3;
+
 
 
                 // if the line_edit buffer has something in it
