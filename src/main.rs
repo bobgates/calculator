@@ -13,6 +13,7 @@ use core::{cell::RefCell};
 // use core::ptr::null_mut;
 // use core::sync::atomic::Ordering;
 use cortex_m::asm::delay;
+use crate::stack::Stack;
 
 use {defmt_rtt as _, panic_probe as _};
 
@@ -64,7 +65,8 @@ use st7565::ST7565;
 use st7565::modes::GraphicsMode;
 
 mod stack;
-use crate::stack::STACK;
+// use crate::stack::STACK;
+// use crate::stack::Stack;
 
 use {defmt_rtt as _, panic_probe as _};
 
@@ -181,20 +183,38 @@ info!("before main loop");
         if key == KeyName::Enter|| WORK_IN_ENTRY_MODE.contains(key) || ENTER_AND_EDIT_ENTRY_MODE.contains(key){
             info!("_____ Process line edit key: {}", key);
             let mut entry_line = line_edit.process_number_keys(key); 
+            // match entry_line {
+            //     Some(ResultValue::Float(f)) => {
+                
+            //             info!("entry_line is a float: {}", f);
+            //             Stack::push(f);          
+            //             display.update_stack_display(None);
+            //             line_edit.clear();
+            //             entry_line = None;  // Clear the entry line after processing it
+            //         },
+            //     Some(ResultValue::Str(s)) => {
+                
+            //             info!("entry_line is a string");
+            //             // info!(s);
+            //             // Stack::push(f);          
+            //             // display.update_stack_display(None);
+            //             // line_edit.clear();
+            //             // entry_line = None;  // Clear the entry line after processing it
+            //         },
+            //     None => {
+            //             info!("entry_line is None");
+            //          //   display.update_stack_display(None);
+            //         }
+            // }   
             match entry_line {
                 Some(ResultValue::Str(s)) => {
+                    info!("here in main: entry_line is a string");
                     display.update_stack_display(Some(s.clone()));
                     info!("enter entry_line is a string");               
                  },
                 Some(ResultValue::Float(f)) => {
-                    { let mut stack  = STACK.lock().fetch_all();
-                        stack.3 = stack.2;
-                        stack.2 = stack.1;
-                        stack.1 = stack.0;
-                        stack.0 = f;
-                    }
-                    // stack_view.push_enter_number(f);
-                    info!("entry_line is a float: {}", f);
+                    info!("here in main: entry_line is a float: {}", f);
+                    Stack::enter_push(f);          
                     display.update_stack_display(None);
                     line_edit.clear();
                     entry_line = None;  // Clear the entry line after processing it

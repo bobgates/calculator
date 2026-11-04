@@ -38,6 +38,7 @@ use st7565::displays::DOGL128_6;
 pub use st7565::ST7565;
 use st7565::modes::GraphicsMode;
 
+use crate::stack::Stack;
 use crate::State::Calculating;
 use num_traits::float::FloatCore;
 
@@ -171,12 +172,12 @@ info!("_____________________");
 
 info!("After DS lock in update_stack_display");
         
-        let mut st = (0.0, 0.0, 0.0, 0.0, false, 0); 
+        // let mut st = (0.0, 0.0, 0.0, 0.0, false, 0); 
         //STACK.lock().fetch_all();
 info!("here in update_stack_display");
         
         
-        // { st = STACK.lock().fetch_all();}
+        let st = Stack::fetch_all();
 
 info!("After stack lock");
 
@@ -234,6 +235,11 @@ info!("st0 is {}, st4 is {}", st.0, st.4);
         (out, e_pos)
     }
 
+
+//Implements notable traits: 
+//Future<Output = <StringInner<usize, VecStorageInner<[MaybeUninit<u8>; _]>> as Future>::Output>, Iterator<Item = <StringInner<usize, VecStorageInner<[MaybeUninit<u8>; _]>> as Iterator>::Item>, Read, Write
+
+
     pub fn draw_one_line(&mut self, entry_line: Option<String<EDIT_LENGTH>>, target: DisplayLine){   // e_pos: Option<i32>,
   
         info!("In draw_one_line");
@@ -243,12 +249,12 @@ info!("st0 is {}, st4 is {}", st.0, st.4);
             return;
         }
 
-        let line = entry_line.clone().unwrap();
+        let line = entry_line.unwrap();
         
-        // info!("entry line is:");
-        // for (i, c) in line.chars().enumerate(){
-        //     info!("{}-{}", i,c);
-        // }
+        // info!("entry line is: {}", line);
+        for (i, c) in line.chars().enumerate(){
+            info!("{}-{}", i,c);
+        }
 
         let (letter, label_bottom, number_bottom)  = match target {
             DisplayLine::X => {("x", LABEL_BOTTOM, NUMBER_BOTTOM)},

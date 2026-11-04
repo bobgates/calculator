@@ -4,6 +4,7 @@ use crate::keyboard::KeyName;
 use crate::stack::STACK;
 use crate::stack::Stack;
 
+// use crate::stack::stack;
 
 
 
@@ -38,7 +39,7 @@ impl <'a>Calculate{
 
 
 
-        let mut stack  = STACK.lock().fetch_all();
+        let mut stack  = Stack::fetch_all();
         info!("x = {}, y = {}, z = {}, t = {}", stack.0, stack.1, stack.2, stack.3);
         match key{
             KeyName::Plus => {

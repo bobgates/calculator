@@ -2,20 +2,9 @@
 //! when the calculator is in edit mode. It works exclusively with characters
 //! and strings except when asked to return the value as a number
 
-// use core::{f64, num};
-// use core::fmt::Write;
-// use core::{fmt, result};
-// use core::{error::Error, result};
+
 use defmt::{info};//, 
-// use defmt::Format;
-
-// use heapless::format;
 use heapless::String;
-
-
-
-// use crate::keyboard::Keyboard;
-// use crate::keyboard::{ENTER_AND_EDIT_ENTRY_MODE, WORK_IN_ENTRY_MODE};
 use crate::keyboard::KeyName;
 
 
@@ -81,7 +70,7 @@ impl LineEdit{//<'_>{
                 info!("Enter key pressed -- in process_number_keys");
 
                 if self.line.chars().last()==Some('E'){
-                    info!("     pnk: line ends with E, so adding a 0");
+                    info!("     process_number_keys: line ends with E, so adding a 0");
                     self.line.push('0').unwrap();
                 }
                 let result = self.line.parse::<f64>();
@@ -91,7 +80,7 @@ impl LineEdit{//<'_>{
                     info!("Result is ok, x is {}", x);
                     return Some(ResultValue::Float(x));
                 } else {
-                    info!("    pnk: result is NOT ok");
+                    info!("    process_number_keys: result is NOT ok");
                     return None;
                 }
         
