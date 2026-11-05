@@ -27,10 +27,10 @@ use embedded_graphics::{prelude::*};
 use embedded_graphics::text::Text;
 
 use heapless::{format, String}; 
-use crate::keyboard::KeyName;
+// use crate::keyboard::KeyName;
 use crate::line_edit::{EDIT_LENGTH};
 
-use crate::stack::STACK;
+// use crate::stack::STACK;
 use crate::stack::DISPLAY_STYLE;
 
 
@@ -210,7 +210,7 @@ info!("st0 is {}, st4 is {}", st.0, st.4);
 // There's an error above. This code works, but more or less the same code
 // in lines above does not.
 
-        info!("about to draw one line");
+      //  info!("about to draw one line");
         self.draw_one_line(Some(x_str), DisplayLine::X );    
         self.display.flush().unwrap();       // Flushes internal buffer to the display
 
@@ -252,9 +252,9 @@ info!("st0 is {}, st4 is {}", st.0, st.4);
         let line = entry_line.unwrap();
         
         // info!("entry line is: {}", line);
-        for (i, c) in line.chars().enumerate(){
-            info!("{}-{}", i,c);
-        }
+        // for (i, c) in line.chars().enumerate(){
+        //     info!("{}-{}", i,c);
+        // }
 
         let (letter, label_bottom, number_bottom)  = match target {
             DisplayLine::X => {("x", LABEL_BOTTOM, NUMBER_BOTTOM)},

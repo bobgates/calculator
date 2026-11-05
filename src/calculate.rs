@@ -1,14 +1,7 @@
 use defmt::info;
 
 use crate::keyboard::KeyName;
-use crate::stack::STACK;
 use crate::stack::Stack;
-
-// use crate::stack::stack;
-
-
-
-// use crate::display::DisplayStackView;
 
 pub struct Calculate {//<'a>{
     // temp_stack = 
@@ -43,11 +36,15 @@ impl <'a>Calculate{
         info!("x = {}, y = {}, z = {}, t = {}", stack.0, stack.1, stack.2, stack.3);
         match key{
             KeyName::Plus => {
+                // binary_operator(+){
+                
+
+
                 info!("In the process of the Plus key");
                 stack.0 = stack.1 + stack.0;
                 stack.1 = stack.2;
                 stack.2 = stack.3;
-
+                Stack::set_all(stack.0, stack.1, stack.2, stack.3, stack.4, stack.5);  
 
 
                 // if the line_edit buffer has something in it

@@ -100,26 +100,50 @@ impl Stack {
         // Leaves a in a and in z
         temp
     }
-    // pub fn set_changed(&mut self) { // todo! make this private and only set when a push or pop occurs
-    //     stack.4 = true;
-    // }
+
     pub fn changed(&mut self)->bool{
         let stack = STACK.lock();//.fetch_all();
         stack.4
     }
-    
+
     pub fn fetch_all() -> (f64, f64, f64, f64, bool, usize){
         let stack = STACK.lock();//.fetch_all();
         (stack.0, stack.1, stack.2, stack.3, stack.4, stack.5)
     }
 
-    // pub fn swapxy(&mut self){
-    //     let mut stack = STACK.lock().fetch_all();
-    //     let temp = stack.0;
-    //     stack.0 = stack.1;
-    //     stack.1 = temp;
+    pub fn set_all(x: f64, y: f64, z: f64, t: f64, changed: bool, index: usize){
+        let mut stack = STACK.lock();//.fetch_all();
+        stack.0 = x;
+        stack.1 = y;
+        stack.2 = z;
+        stack.3 = t;
+        stack.4 = changed;
+        stack.5 = index;
+    }
+
+    pub fn swapxy(&mut self){
+        let mut stack = Stack::fetch_all();
+        let temp = stack.0;
+        stack.0 = stack.1;
+        stack.1 = temp;
+        Stack::set_all(stack.0, stack.1, stack.2, stack.3, stack.4, stack.5);
+    }
+
+    // pub fn do_operator<F>(a:f64, b:f64, operator: F)->F 
+    // where 
+    //     F: Fn(f64, f64)->f64,
+    //     {
+    //         operator(a, b)
+    //     }
     // }
 
+
+    //     let mut stack = Stack::fetch_all();
+    //     stack.0 = operator(stack.1, stack.0);
+    //     stack.1 = stack.2;
+    //     stack.2 = stack.3;
+    //     Stack::set_all(stack.0, stack.1, stack.2, stack.3, true, stack.5);
+    // }
 
     // pub fn swapx_with_new_y(&mut self, new_y: f64){
     //     let mut stack = STACK.lock().fetch_all();
