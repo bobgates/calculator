@@ -1,6 +1,6 @@
 use core::{
     ptr,
-    sync::atomic::{AtomicUsize, Ordering},
+    sync::atomic::{AtomicU32, Ordering},
 };
 
 use crate::{consts::BUF_SIZE, MODE_BLOCK_IF_FULL, MODE_MASK};
@@ -8,20 +8,23 @@ use crate::{consts::BUF_SIZE, MODE_BLOCK_IF_FULL, MODE_MASK};
 /// RTT Up channel
 #[repr(C)]
 pub(crate) struct Channel {
+    /// Name of the channel (null terminated)
     pub name: *const u8,
     /// Pointer to the RTT buffer.
     pub buffer: *mut u8,
-    pub size: usize,
+    /// Size, in bytes, of the RTT buffer
+    pub size: u32,
     /// Written by the target.
-    pub write: AtomicUsize,
+    pub write: AtomicU32,
     /// Written by the host.
-    pub read: AtomicUsize,
+    pub read: AtomicU32,
     /// Channel properties.
     ///
     /// Currently, only the lowest 2 bits are used to set the channel mode (see constants below).
-    pub flags: AtomicUsize,
+    pub flags: AtomicU32,
 }
 
+#[cfg(not(feature = "drop-on-contention"))]
 impl Channel {
     pub fn write_all(&self, mut bytes: &[u8]) {
         // the host-connection-status is only modified after RAM initialization while the device is
@@ -46,8 +49,8 @@ impl Channel {
         }
 
         // calculate how much space is left in the buffer
-        let read = self.read.load(Ordering::Relaxed);
-        let write = self.write.load(Ordering::Acquire);
+        let read = self.read.load(Ordering::Relaxed) as usize;
+        let write = self.write.load(Ordering::Acquire) as usize;
         let available = available_buffer_size(read, write);
 
         // abort if buffer is full
@@ -59,7 +62,7 @@ impl Channel {
     }
 
     fn nonblocking_write(&self, bytes: &[u8]) -> usize {
-        let write = self.write.load(Ordering::Acquire);
+        let write = self.write.load(Ordering::Acquire) as usize;
 
         // NOTE truncate at BUF_SIZE to avoid more than one "wrap-around" in a single `write` call
         self.write_impl(bytes, write, BUF_SIZE)
@@ -70,23 +73,67 @@ impl Channel {
 
         // copy `bytes[..len]` to the RTT buffer
         unsafe {
-            if cursor + len > BUF_SIZE {
-                // split memcpy
-                let pivot = BUF_SIZE - cursor;
-                ptr::copy_nonoverlapping(bytes.as_ptr(), self.buffer.add(cursor), pivot);
-                ptr::copy_nonoverlapping(bytes.as_ptr().add(pivot), self.buffer, len - pivot);
-            } else {
-                // single memcpy
-                ptr::copy_nonoverlapping(bytes.as_ptr(), self.buffer.add(cursor), len);
-            }
+            self.copy_wrapping(&bytes[..len], cursor);
         }
 
         // adjust the write pointer, so the host knows that there is new data
-        self.write
-            .store(cursor.wrapping_add(len) % BUF_SIZE, Ordering::Release);
+        self.write.store(
+            (cursor.wrapping_add(len) % BUF_SIZE) as u32,
+            Ordering::Release,
+        );
 
         // return the number of bytes written
         len
+    }
+}
+
+#[cfg(feature = "drop-on-contention")]
+impl Channel {
+    pub fn stage_bytes(&self, cursor: &mut usize, bytes: &[u8]) -> bool {
+        if bytes.is_empty() || bytes.len() >= BUF_SIZE {
+            return bytes.is_empty();
+        }
+
+        if cfg!(feature = "disable-blocking-mode") || !self.host_is_connected() {
+            let read = self.read.load(Ordering::Relaxed) as usize;
+            if available_buffer_size(read, *cursor) < bytes.len() {
+                return false;
+            }
+        } else {
+            while {
+                let read = self.read.load(Ordering::Relaxed) as usize;
+                available_buffer_size(read, *cursor) < bytes.len()
+            } {}
+        }
+
+        // copy `bytes` to the RTT buffer
+        unsafe {
+            self.copy_wrapping(bytes, *cursor);
+        }
+
+        // advance the cursor
+        *cursor = cursor.wrapping_add(bytes.len()) % BUF_SIZE;
+        true
+    }
+
+    pub fn commit(&self, cursor: usize) {
+        // The owner staged the complete frame first, so a single write-pointer
+        // update publishes either the whole frame or nothing.
+        self.write.store(cursor as u32, Ordering::Release);
+    }
+}
+
+impl Channel {
+    unsafe fn copy_wrapping(&self, bytes: &[u8], cursor: usize) {
+        if cursor + bytes.len() > BUF_SIZE {
+            // split memcpy
+            let pivot = BUF_SIZE - cursor;
+            ptr::copy_nonoverlapping(bytes.as_ptr(), self.buffer.add(cursor), pivot);
+            ptr::copy_nonoverlapping(bytes.as_ptr().add(pivot), self.buffer, bytes.len() - pivot);
+        } else {
+            // single memcpy
+            ptr::copy_nonoverlapping(bytes.as_ptr(), self.buffer.add(cursor), bytes.len());
+        }
     }
 
     pub fn flush(&self) {
@@ -108,12 +155,164 @@ impl Channel {
 }
 
 /// How much space is left in the buffer?
-fn available_buffer_size(read_cursor: usize, write_cursor: usize) -> usize {
+pub(crate) fn available_buffer_size(read_cursor: usize, write_cursor: usize) -> usize {
     if read_cursor > write_cursor {
         read_cursor - write_cursor - 1
-    } else if read_cursor == 0 {
-        BUF_SIZE - write_cursor - 1
     } else {
-        BUF_SIZE - write_cursor
+        BUF_SIZE - write_cursor - 1 + read_cursor
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::available_buffer_size;
+    use crate::consts::BUF_SIZE;
+
+    #[test]
+    fn test_rtt_available_buffer_size() {
+        // Helper to simulate RTT buffer state
+        let avail = |read: usize, write: usize| available_buffer_size(read, write);
+
+        // --- Case 1: Buffer is EMPTY (write == read) ---
+        // Should have maximum available space: BUF_SIZE - 1
+        assert_eq!(avail(0, 0), BUF_SIZE - 1);
+        assert_eq!(avail(10, 10), BUF_SIZE - 1);
+        assert_eq!(avail(BUF_SIZE - 1, BUF_SIZE - 1), BUF_SIZE - 1);
+
+        // --- Case 2: Buffer is FULL ---
+        // Full condition: (write + 1) % BUF_SIZE == read
+        // i.e., write == (read - 1 + BUF_SIZE) % BUF_SIZE
+        assert_eq!(avail(0, BUF_SIZE - 1), 0); // write=BUF_SIZE-1, read=0 → full
+        assert_eq!(avail(5, 4), 0); // write=4, read=5 → full
+        assert_eq!(avail(1, 0), 0); // write=0, read=1 → full
+
+        // --- Case 3: Read ahead of Write (no wrap-around) ---
+        // e.g., read=10, write=5 → free space = [5..9] → size = 10 - 5 - 1 = 4
+        assert_eq!(avail(10, 5), 10 - 5 - 1);
+        assert_eq!(avail(BUF_SIZE - 1, 0), (BUF_SIZE - 1) - 0 - 1); // = BUF_SIZE - 2
+
+        // --- Case 4: Write has wrapped around, Read behind (wrap-around case) ---
+        // e.g., read=5, write=10 → free space = [10..BUF_SIZE-1] + [0..4]
+        // size = (BUF_SIZE - 10 - 1) + (5) = BUF_SIZE - 10 - 1 + 5
+        assert_eq!(avail(5, 10), BUF_SIZE - 10 - 1 + 5);
+        assert_eq!(avail(0, 1), BUF_SIZE - 1 - 1 + 0); // = BUF_SIZE - 2
+        assert_eq!(avail(1, BUF_SIZE - 1), BUF_SIZE - (BUF_SIZE - 1) - 1 + 1); // = 1
+
+        // --- Edge: Single byte free ---
+        // After filling BUF_SIZE - 2 bytes from empty, 1 byte remains
+        assert_eq!(avail(1, BUF_SIZE - 1), 1); // one byte free
+        assert_eq!(avail(2, BUF_SIZE - 1), 2); // one byte free: only position BUF_SIZE-1 is free? No.
+                                               // Actually: write=BUF_SIZE-1, read=2 → free = [BUF_SIZE-1] + [0,1] → but [0,1] is 2 bytes?
+                                               // Let's recompute: total free = (BUF_SIZE - (BUF_SIZE-1) - 1) + 2 = (0) + 2 = 2 → wait.
+
+        // Better: use invariant
+        // Total data in buffer = (write - read + BUF_SIZE) % BUF_SIZE
+        // Free = BUF_SIZE - 1 - data
+        let data_in_buffer = |read: usize, write: usize| (write + BUF_SIZE - read) % BUF_SIZE;
+        let free_should_be = |read: usize, write: usize| BUF_SIZE - 1 - data_in_buffer(read, write);
+
+        // Validate our function against this invariant
+        for read in 0..BUF_SIZE.min(64) {
+            for write in 0..BUF_SIZE.min(64) {
+                let expected = free_should_be(read, write);
+                let actual = avail(read, write);
+                assert_eq!(actual, expected, "Mismatch at read={read}, write={write}");
+            }
+        }
+    }
+}
+
+#[cfg(all(test, feature = "drop-on-contention"))]
+mod test_drop_on_contention {
+    use super::available_buffer_size;
+    use crate::consts::BUF_SIZE;
+
+    use super::Channel;
+    use crate::MODE_NON_BLOCKING_TRIM;
+    use core::{
+        ptr,
+        sync::atomic::{AtomicU32, Ordering},
+    };
+
+    #[test]
+    fn staged_bytes_stay_hidden_until_commit() {
+        let mut buffer = [0u8; BUF_SIZE];
+        let channel = Channel {
+            name: ptr::null(),
+            buffer: buffer.as_mut_ptr(),
+            size: BUF_SIZE as u32,
+            write: AtomicU32::new(0),
+            read: AtomicU32::new(0),
+            flags: AtomicU32::new(MODE_NON_BLOCKING_TRIM),
+        };
+        let mut cursor = 0;
+
+        assert!(channel.stage_bytes(&mut cursor, b"abc"));
+        assert_eq!(cursor, 3);
+        assert_eq!(channel.write.load(Ordering::Relaxed), 0);
+        assert_eq!(&buffer[..3], b"abc");
+
+        channel.commit(cursor);
+        assert_eq!(channel.write.load(Ordering::Relaxed), 3);
+    }
+
+    #[test]
+    fn staged_bytes_wrap_without_publishing() {
+        let mut buffer = [0u8; BUF_SIZE];
+        let channel = Channel {
+            name: ptr::null(),
+            buffer: buffer.as_mut_ptr(),
+            size: BUF_SIZE as u32,
+            write: AtomicU32::new(0),
+            read: AtomicU32::new(8),
+            flags: AtomicU32::new(MODE_NON_BLOCKING_TRIM),
+        };
+        let mut cursor = BUF_SIZE - 2;
+
+        assert!(channel.stage_bytes(&mut cursor, b"wxyz"));
+        assert_eq!(cursor, 2);
+        assert_eq!(channel.write.load(Ordering::Relaxed), 0);
+        assert_eq!(&buffer[BUF_SIZE - 2..], b"wx");
+        assert_eq!(&buffer[..2], b"yz");
+    }
+
+    #[test]
+    fn staged_bytes_rejects_oversized_frame_without_side_effects() {
+        let mut buffer = [0xAA; BUF_SIZE];
+        let channel = Channel {
+            name: ptr::null(),
+            buffer: buffer.as_mut_ptr(),
+            size: BUF_SIZE as u32,
+            write: AtomicU32::new(7),
+            read: AtomicU32::new(7),
+            flags: AtomicU32::new(MODE_NON_BLOCKING_TRIM),
+        };
+        let mut cursor = 7;
+        let bytes = [0x55; BUF_SIZE];
+
+        assert!(!channel.stage_bytes(&mut cursor, &bytes));
+        assert_eq!(cursor, 7);
+        assert_eq!(channel.write.load(Ordering::Relaxed), 7);
+        assert!(buffer.iter().all(|&b| b == 0xAA));
+    }
+
+    #[test]
+    fn staged_bytes_rejects_when_space_is_insufficient_without_partial_copy() {
+        let mut buffer = [0xAA; BUF_SIZE];
+        let channel = Channel {
+            name: ptr::null(),
+            buffer: buffer.as_mut_ptr(),
+            size: BUF_SIZE as u32,
+            write: AtomicU32::new(0),
+            read: AtomicU32::new(4),
+            flags: AtomicU32::new(MODE_NON_BLOCKING_TRIM),
+        };
+        let mut cursor = 0;
+
+        assert_eq!(available_buffer_size(4, cursor), 3);
+        assert!(!channel.stage_bytes(&mut cursor, b"wxyz"));
+        assert_eq!(cursor, 0);
+        assert_eq!(channel.write.load(Ordering::Relaxed), 0);
+        assert!(buffer.iter().all(|&b| b == 0xAA));
     }
 }

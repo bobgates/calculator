@@ -74,6 +74,8 @@ impl LineEdit{//<'_>{
                     self.line.push('0').unwrap();
                 }
                 let result = self.line.parse::<f64>();
+
+                self.line.clear();  // Clear the line after processing it
          
                 if result.is_ok() {
                     let x: f64 = result.unwrap();

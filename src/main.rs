@@ -4,14 +4,8 @@
 
 mod calculate;
 use calculate::Calculate;
-// use embedded_graphics::primitives::line;   
 
-// use core::alloc::{GlobalAlloc, Layout};
 use core::{cell::RefCell};
-// use core::{fmt::Display};
-// use core::mem::MaybeUninit;
-// use core::ptr::null_mut;
-// use core::sync::atomic::Ordering;
 use cortex_m::asm::delay;
 use crate::stack::Stack;
 
@@ -23,7 +17,6 @@ mod display;
 use display::DisplayStruct;
 use display::DisplayStyle;
 use display_interface_spi::SPIInterface;
-// use display::DisplayStackView;
 
 use embassy_embedded_hal::shared_bus::blocking::spi::SpiDeviceWithConfig;
 use embassy_executor::Spawner;
@@ -43,14 +36,14 @@ use embedded_graphics::pixelcolor::BinaryColor;
 use embassy_sync::blocking_mutex::Mutex;
 use embassy_sync::blocking_mutex::raw::NoopRawMutex;
 
+
 mod flash_led;
 use flash_led::FlashLed;
 
-// use heapless::string::StringInner;
-// use heapless::String; //, format};
-
 mod keyboard;
 use keyboard::{Keyboard, KeyName, ENTER_AND_EDIT_ENTRY_MODE, WORK_IN_ENTRY_MODE};
+
+mod eng_fmt;
 
 mod line_edit;
 use line_edit::LineEdit;
@@ -170,50 +163,39 @@ info!("after calculate and set number style");
     // let mut editing : bool = false;
 info!("before main loop");
 
+    let mut entry_mode = false;
     // ******************************************************************************************** //
     loop{
         delay(1_000_000); //100E6 is about once per second
-        let key = keyboard.scan().await;
-        let key = match key {
+        let key = match keyboard.scan().await {
             Some(k) => k,
             None => continue,
         }; 
-        info!("key entered");
         
-        if key == KeyName::Enter|| WORK_IN_ENTRY_MODE.contains(key) || ENTER_AND_EDIT_ENTRY_MODE.contains(key){
+        if key == KeyName::OnOff {
+            display.set_on(!display.is_on());
+            continue;
+        }
+        
+        if key == KeyName::E && !entry_mode {
+            line_edit.process_number_keys(KeyName::Number1);
+            line_edit.process_number_keys(KeyName::E);
+            entry_mode = true;
+        }
+
+
+        if key == KeyName::Enter || WORK_IN_ENTRY_MODE.contains(key) || ENTER_AND_EDIT_ENTRY_MODE.contains(key){
+            entry_mode = true;
             info!("_____ Process line edit key: {}", key);
-            let mut entry_line = line_edit.process_number_keys(key); 
-            // match entry_line {
-            //     Some(ResultValue::Float(f)) => {
-                
-            //             info!("entry_line is a float: {}", f);
-            //             Stack::push(f);          
-            //             display.update_stack_display(None);
-            //             line_edit.clear();
-            //             entry_line = None;  // Clear the entry line after processing it
-            //         },
-            //     Some(ResultValue::Str(s)) => {
-                
-            //             info!("entry_line is a string");
-            //             // info!(s);
-            //             // Stack::push(f);          
-            //             // display.update_stack_display(None);
-            //             // line_edit.clear();
-            //             // entry_line = None;  // Clear the entry line after processing it
-            //         },
-            //     None => {
-            //             info!("entry_line is None");
-            //          //   display.update_stack_display(None);
-            //         }
-            // }   
+            let mut entry_line = line_edit.process_number_keys(key);    
             match entry_line {
                 Some(ResultValue::Str(s)) => {
-                    info!("here in main: entry_line is a string");
+                    info!("main: entry_line is a string");
                     display.update_stack_display(Some(s.clone()));
-                    info!("enter entry_line is a string");               
+                    // info!("enter entry_line is a string");              
                  },
                 Some(ResultValue::Float(f)) => {
-                    info!("here in main: entry_line is a float: {}", f);
+                    info!("main: entry_line is a float: {}", f);
                     Stack::enter_push(f);          
                     display.update_stack_display(None);
                     line_edit.clear();
@@ -221,7 +203,7 @@ info!("before main loop");
 
                 },
                 None => {
-                    info!("entry_line is None");
+                    info!("main: entry_line is None");
                     display.update_stack_display(None);
                 }
             }   
@@ -229,7 +211,9 @@ info!("before main loop");
             info!("_____ Process calulate key: {}", key);
             calculate.process_calculate_key(key);
             display.update_stack_display(None);
+
         };        
+
         info!("end of match machine_state loop in main");
     };
 }

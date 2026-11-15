@@ -27,7 +27,9 @@ use embedded_graphics::{prelude::*};
 use embedded_graphics::text::Text;
 
 use heapless::{format, String}; 
+use crate::display::DisplayLine::T;
 // use crate::keyboard::KeyName;
+use crate::eng_fmt::FormatEng;
 use crate::line_edit::{EDIT_LENGTH};
 
 // use crate::stack::STACK;
@@ -40,7 +42,7 @@ use st7565::modes::GraphicsMode;
 
 use crate::stack::Stack;
 use crate::State::Calculating;
-use num_traits::float::FloatCore;
+// use num_traits::float::FloatCore;
 
 const NUMBER_BOTTOM: i32 = 62;
 const LABEL_BOTTOM: i32 = 61;
@@ -64,7 +66,7 @@ const T_NUM_BOTTOM: i32 = NUMBER_BOTTOM - 3*LINE_SPACING;
 // It is possible to get 2.7" displays in 240x320...
 #[derive(Copy, Clone, Debug)]
 pub enum DisplayStyle{
-    E(i32),
+    E(usize),
     _S(i32),
     _FIXED,
     _ALL,
@@ -102,6 +104,7 @@ pub struct DisplayStruct <'a>{
     number_style: DisplayStyle,
     eline : Option<String<EDIT_LENGTH>>,
     state: crate::State,
+    on: bool,
     // pub stack_view: &'a mut DisplayStackView,
 }
 
@@ -132,6 +135,7 @@ info!("_____________________");
             number_style,
             eline: None,
             state: Calculating,
+            on: true,
             // stack_view: stack_view,
         }
     }
@@ -143,15 +147,20 @@ info!("_____________________");
     }
 
     pub fn set_on(&mut self, on: bool) {
+        self.on = on;
 
         let _ = self.display.flush();
         self.display.set_display_on(on).unwrap();
 
 
 // This code can be in or out:
-        let num_str: String<EDIT_LENGTH> =  format!("{}", "Power on").unwrap();//Format!("{}".num);
-        let _ =Text::new(&num_str, Point::new(24, 18), self.font).draw(&mut self.display);
-        self.display.flush().unwrap(); 
+        // let num_str: String<EDIT_LENGTH> =  format!("{}", "Power on").unwrap();//Format!("{}".num);
+        // let _ =Text::new(&num_str, Point::new(24, 18), self.font).draw(&mut self.display);
+        // self.display.flush().unwrap(); 
+    }
+
+    pub fn is_on(&self)->bool{
+        self.on
     }
 
     // Updates the display with the current stack values and the current entry line
@@ -174,7 +183,7 @@ info!("After DS lock in update_stack_display");
         
         // let mut st = (0.0, 0.0, 0.0, 0.0, false, 0); 
         //STACK.lock().fetch_all();
-info!("here in update_stack_display");
+// info!("here in update_stack_display");
         
         
         let st = Stack::fetch_all();
@@ -210,7 +219,7 @@ info!("st0 is {}, st4 is {}", st.0, st.4);
 // There's an error above. This code works, but more or less the same code
 // in lines above does not.
 
-      //  info!("about to draw one line");
+        info!("about to draw one line");
         self.draw_one_line(Some(x_str), DisplayLine::X );    
         self.display.flush().unwrap();       // Flushes internal buffer to the display
 
@@ -303,69 +312,103 @@ pub fn num_to_string(number_style: DisplayStyle, number: &f64 )->String<EDIT_LEN
         // let _ = output.push('0');
         return output; //,Some(pos));
     } else {
-        let mut a: String<EDIT_LENGTH>;
+        let a: String<EDIT_LENGTH>;
         match number_style {
             DisplayStyle::E(sf) => {
-                let exponent: i32 = 1 + libm::log10(*number).floor() as i32;
-                let mut before_dp = exponent % 3;  // This gives everything powers for 10^3, 10^-3, etc
+                a = number.format_eng(Some(sf));//.unwrap();
 
-                if before_dp ==0 {before_dp=3}; 
-                if before_dp<0 {
-                    before_dp=3+before_dp
-                };
-                let exp = exponent - before_dp;
 
-                let n = (*number/(10.0_f64).powi(exponent-sf)).trunc()/10_f64.powi(sf-before_dp);
-                // 1. the cutting off of the number to the correct number of significant figures
-                // Leaves exp
-                // if exp == 0
-
-                // info!("--- {}E{}", n, exp);     // This produces a different string
-                                                // to the format statement below,
-                                                // info! gives .0 if there are no non-zero decimals
-                                                // format just doesn't return no-zero decimals
-                a = String::from(format!("{}E{}", n, exp).unwrap());
-                // self.eline = Some(a.clone());
-
-                // sf here is the number of significant figures to display, 
-                // but it is being interpreted as the number of decimal places 
-                // so we need to fix this the number accordingly
-
-                // There's an issue that if the number is an exact integer,
-                // it only has one place after the decimal: a zero. We need to 
-                // add more zeroes to show the full sig figs.
+        //         // Example = 12345.6789, exponent = 4, sf=3, before_dp = 1, exp = 1, n = 12.3E3
                 
-                // This comes down to subtracting the length of a from sf+1
-                // and adding that many zeroes
-                // Example: 
-                // 100.0
-                //.  that's character length 5, sf we want is 5,  so (sf+1)-len = 6-5 =
-                // add one zero.
+        //         let exponent: usize = 1 + libm::log10(*number).floor() as usize; 
+        //         //exponent = 5
+                
+        //         let mut before_dp: usize = exponent as usize % 3;  // This gives everything powers for 10^3, 10^-3, etc
+        //         // before_dp = 2 = (5 mod 3)
 
-                let p = a.find("E").unwrap(); // must succeed, defined two lines above                 
-                if !a.contains("."){                                 // Formats numbers with zero after the
-                    let required = sf+2 - a.len() as i32;       // decimal point to have sf zeroes 
-                    for _i in 0..required {                     // after the decimal point
-                        a.insert(p,'0').unwrap();
-                    }
-                    a.insert(p, '.').unwrap();
-                } 
+        //         if before_dp ==0 {before_dp=3}; // If there's nothing before the decimal point, we want to show 
+        //                                         //3 digits after it, so we need to set this to 3
+        //         if before_dp>sf {before_dp=sf}; // If the number of digits before the decimal point is greater
+        //                                         // than the number of significant figures we want to display, 
+        //                                         // we need to reduce to a mutiple of 3 that is less than or equal 
+        //                                         // to the number of significant figures we want to display
+        //         if before_dp<0 {            // If the number before the decimal point is less than 1, 
+        //                                     //we need to add 3 to before_dp to 
+        //                                     // get the number of digits after the decimal point
+        //             before_dp=3+before_dp
+        //         };
+        //         //
 
-                a
+        //         let exp: usize = (exponent - before_dp).try_into().unwrap();
+        //         // exp = 5-2 = 3, which is the exponent we want to display in the E notation
+
+                
+        //         // Example: 12345.6789, exponent+1 = 5, sf=3, before_dp = 2, exp = 3, number = 12.3E3
+
+        // info!("exponent is {}, sf is {}, before_dp is {}, exp is {}", exponent, sf, before_dp, exp);
+        // info!("exponent-sf is {}, sf-before_dp is {}", exponent-sf, sf-before_dp);
+
+        //         let n = *number/(10.0_f64).powi((exponent-sf)as i32).trunc()/10_f64.powi((sf-before_dp) as i32);
+        //         // Example: n = 12345.6789/(10^(4-3)) = 1234.56789, trunc = 1234/10^(3-1) = 1234/100 = 12.34
+        // info!("n is {}, exponent is {}, sf is {}, before_dp is {}, exp is {}", n, exponent, sf, before_dp, exp);
+        //         // n=12.34, exp = 3
+
+
+
+        //         // info!("--- {}E{}", n, exp);     // This produces a different string
+        //                                         // to the format statement below,
+        //                                         // info! gives .0 if there are no non-zero decimals
+        //                                         // format just doesn't return no-zero decimals
+
+        //         let precision=  sf - before_dp;
+
+        //         let mut a: String<EDIT_LENGTH> = format!("{0:.1$}E{2}", n, precision, exp).unwrap();
+        //         // let mut a: String<EDIT_LENGTH> = format!("{:.1$}E{}", n, (sf - before_dp), exp).unwrap();
+        //         // {:.1$}E{} means: use the 1st positional argument (index 1) as the precision value.
+        //         // The precision is the second positional argument after the value.
+                
+                
+        //         // self.eline = Some(a.clone());
+
+        //         // sf here is the number of significant figures to display, 
+        //         // but it is being interpreted as the number of decimal places 
+        //         // so we need to fix this the number accordingly
+
+        //         // There's an issue that if the number is an exact integer,
+        //         // it only has one place after the decimal: a zero. We need to 
+        //         // add more zeroes to show the full sig figs.
+                
+        //         // This comes down to subtracting the length of a from sf+1
+        //         // and adding that many zeroes
+        //         // Example: 
+        //         // 100.0
+        //         //.  that's character length 5, sf we want is 5,  so (sf+1)-len = 6-5 =
+        //         // add one zero.
+
+        //         let p = a.find("E").unwrap(); // must succeed, defined two lines above                 
+        //         if !a.contains("."){                                 // Formats numbers with zero after the
+        //             let required = sf+2 - a.len();       // decimal point to have sf zeroes 
+        //             for _i in 0..required {                     // after the decimal point
+        //                 a.insert(p,'0').unwrap();
+        //             }
+        //             a.insert(p, '.').unwrap();
+        //         } 
+
+        //         a
                 // DisplayStruct ::replace_letter(&Some(a.clone()), 'E', ' ');
 
-                // let mut b: String<EDIT_LENGTH>=String::new();
-                // // let mut e_pos: Option<i32> = None;
-                // info!("Contains E");
-                // for (l, c) in a.chars().enumerate(){
-                //     if c == 'E' {
-                //         b.push(' ').unwrap();
-                //         // e_pos = Some(l.try_into().unwrap());
-                //     } else {
-                //         b.push(c).unwrap();
-                //     }
-                // }   
-                // return b       
+                let mut b: String<EDIT_LENGTH>=String::new();
+                // let mut e_pos: Option<i32> = None;
+                info!("Contains E");
+                for (l, c) in a.chars().enumerate(){
+                    if c == 'e' {
+                        b.push(' ').unwrap();
+                        // e_pos = Some(l.try_into().unwrap());
+                    } else {
+                        b.push(c).unwrap();
+                    }
+                }   
+                return b       
             },
             DisplayStyle::_S(_sf) => {
                 return format!("Not implemented").unwrap();

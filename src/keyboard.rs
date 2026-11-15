@@ -86,6 +86,11 @@ static ROW_COL_MAP: [[KeyName; 6]; 8] = [
     [KeyName::Fn1, KeyName::Fn2, KeyName::Fn3, KeyName::Fn4, KeyName::Fn5, KeyName::Fn6]
 ];
 
+pub const OPERATOR_KEYS:  EnumSet<KeyName> = enum_set!(
+    KeyName::Plus | KeyName::Minus | KeyName::Multiply | 
+    KeyName::Divide 
+);
+
 pub struct Keyboard{
     rows: [Input<'static>; 8],
     cols: [Output<'static>; 6],
