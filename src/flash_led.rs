@@ -2,13 +2,13 @@
 use cortex_m::asm::delay;
 use embassy_rp::gpio::Output;
 
-pub struct FlashLed {
-    led: Output<'static>,
+pub struct FlashLed<'a>{
+    led: &'a mut Output<'static>,
     delay: u32,
 }
 
-impl FlashLed {
-    pub fn new(led: Output<'static>, delay: u32) -> Self {
+impl <'a> FlashLed <'a> {
+    pub fn new(led: &'a mut Output<'static>, delay: u32) -> Self {
         Self { led, delay }
     }
 

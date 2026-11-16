@@ -87,9 +87,15 @@ async fn main (_spawner: Spawner) {
     let p = embassy_rp::init(Default::default());
 
     // Give a quick flash on the RP2350 LED to show that the device is alive.
-    let pico_led = Output::new(p.PIN_25, Level::High);
-    let mut flash_led = FlashLed::new(pico_led, 20_000_000);
-    flash_led.flash();
+    let pico_led = &mut Output::new(p.PIN_25, Level::High);
+    {
+        let flash_led = &mut FlashLed::new(pico_led, 20_000_000);
+        flash_led.flash();
+    }
+    pico_led.set_level(Level::Low); // Turn off the LED after flashing
+
+
+
 
     let a0 = Output::new(p.PIN_27, Level::Low);   
     let display_config = spi::Config::default();
@@ -164,6 +170,12 @@ info!("after calculate and set number style");
 info!("before main loop");
 
     let mut entry_mode = false;
+    pico_led.set_level(Level::Low);
+    delay(30_000_000);
+    pico_led.set_level(Level::High);
+    delay(30_000_000);
+    pico_led.set_level(Level::Low);
+
     // ******************************************************************************************** //
     loop{
         delay(1_000_000); //100E6 is about once per second
@@ -178,14 +190,18 @@ info!("before main loop");
         }
         
         if key == KeyName::E && !entry_mode {
+            entry_mode = true;
+            pico_led.set_level(Level::High);
+            line_edit.clear();
             line_edit.process_number_keys(KeyName::Number1);
             line_edit.process_number_keys(KeyName::E);
-            entry_mode = true;
+            display.update_stack_display(line_edit.get_entry_line().into());
         }
 
 
         if key == KeyName::Enter || WORK_IN_ENTRY_MODE.contains(key) || ENTER_AND_EDIT_ENTRY_MODE.contains(key){
             entry_mode = true;
+            pico_led.set_level(Level::High);
             info!("_____ Process line edit key: {}", key);
             let mut entry_line = line_edit.process_number_keys(key);    
             match entry_line {
@@ -200,6 +216,8 @@ info!("before main loop");
                     display.update_stack_display(None);
                     line_edit.clear();
                     entry_line = None;  // Clear the entry line after processing it
+                    entry_mode = false;
+                    pico_led.set_level(Level::Low);
 
                 },
                 None => {
@@ -217,3 +235,15 @@ info!("before main loop");
         info!("end of match machine_state loop in main");
     };
 }
+
+
+// When you hit add, that has to put the current entry line into the stack, 
+// and then do the add.  So the add key has to check if there is an entry line, 
+// and if so, push it onto the stack, and then do the add.  If there is no entry line, 
+// then just do the add.  The same goes for all the other operator keys. 
+// So the operator keys have to check if there is an entry line, and if so, push 
+// it onto the stack, and then do the operation.  If there is no entry line, then 
+// just do the operation.
+//
+// At the moment, the operator keys just do the operation, and don't check if 
+// there is an entry line.
