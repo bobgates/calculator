@@ -174,26 +174,10 @@ info!("_____________________");
         
         self.display.clear(BinaryColor::Off);        
 
-        // self.stack_view.set_format(DisplayStyle::E(4));
-
-// info!("Before locks in update stack display");
         let ds = DISPLAY_STYLE.lock().fetch_all();
-
-info!("After DS lock in update_stack_display");
-        
-        // let mut st = (0.0, 0.0, 0.0, 0.0, false, 0); 
-        //STACK.lock().fetch_all();
-// info!("here in update_stack_display");
-        
         
         let st = Stack::fetch_all();
 
-info!("After stack lock");
-
-        
-        // let st = self.stack.fetch_all();
-        // let ds = self.stack_view.ds;
-// info!("ds is {}", ds);
 info!("st0 is {}, st4 is {}", st.0, st.4);
 
 
@@ -251,7 +235,7 @@ info!("st0 is {}, st4 is {}", st.0, st.4);
 
     pub fn draw_one_line(&mut self, entry_line: Option<String<EDIT_LENGTH>>, target: DisplayLine){   // e_pos: Option<i32>,
   
-        info!("In draw_one_line");
+        // info!("In draw_one_line");
 
         if entry_line.is_none(){
             info!("entry_line is none in dislay.draw_one_line");

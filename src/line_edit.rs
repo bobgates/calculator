@@ -50,7 +50,6 @@ impl LineEdit{//<'_>{
         LineEdit {  /*state,*/ line}
     }
 
-
     pub fn get_entry_line(&self)->String<EDIT_LENGTH>{
         return self.line.clone();
     }
@@ -63,8 +62,8 @@ impl LineEdit{//<'_>{
 
     // Only called in Entry mode, so we know that the key is a number 
     // or a decimal point or E or +/-, or Enter or Backspace.
+    // returns a ResultValue::Float if Enter is pressed, else returns a ResultValue::Str with the current line characters in it.
     pub fn process_number_keys(&mut self, key: KeyName)->Option<ResultValue> { 
-// info!("In process_number_keys***************************************************************** ");
         match key{
             KeyName::Enter => {
                 info!("Enter key pressed -- in process_number_keys");
@@ -158,11 +157,7 @@ impl LineEdit{//<'_>{
         };//} else {};
         for c in self.line.chars() {
             info!("process_number_keys: line char: {}", c);
-        }
-        
-        // let result = self.line.parse::<f64>();
-        // result.ok()      
-
+        }    
         Some(ResultValue::Str(self.line.clone()))
     }
 
