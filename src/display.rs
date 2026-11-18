@@ -178,7 +178,7 @@ info!("_____________________");
         
         let st = Stack::fetch_all();
 
-info!("st0 is {}, st4 is {}", st.0, st.4);
+info!("x is {}, changed is {}", st.0, st.4);
 
 
         let y_str = num_to_string(ds, &st.1);

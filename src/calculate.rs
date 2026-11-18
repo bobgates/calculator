@@ -22,6 +22,20 @@ impl <'a>Calculate{
         }
     }
 
+    pub fn push(&mut self, value: Option<f64>){
+        // Take a va;ue and push it onto the stack
+
+        let mut stack  = Stack::fetch_all();
+        stack.3 = stack.2;
+        stack.2 = stack.1;
+        stack.1 = stack.0;
+        if value.is_some(){
+            stack.0 = value.unwrap();
+        }
+
+        Stack::set_all(stack.0, stack.1, stack.2, stack.3, stack.4, stack.5);  
+    }
+
     pub fn function_key(&mut self, key: KeyName){
         info!("function_key: {}", key);    
         match key{

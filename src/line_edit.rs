@@ -34,9 +34,8 @@ pub const EDIT_LENGTH: usize = 22;      // Two spare characters if there are a c
 */
 
 #[derive(Debug)]
-pub struct LineEdit{ 
+pub struct LineEdit {
     pub line: String<EDIT_LENGTH>
-
 }
 
 pub enum ResultValue{
@@ -44,7 +43,7 @@ pub enum ResultValue{
     Str(String<EDIT_LENGTH>),
 }
 
-impl LineEdit{//<'_>{
+impl LineEdit{
     pub fn new()->LineEdit{ 
         let line = String::<EDIT_LENGTH>::new(); 
         LineEdit {  /*state,*/ line}
@@ -54,9 +53,15 @@ impl LineEdit{//<'_>{
         return self.line.clone();
     }
 
+    pub fn value(&self)->Option<f64>{
+        let res   = self.line.parse::<f64>();
+        res.ok()
+    }
+
+
     pub fn clear(&mut self){
         info!("_________________ clearing line in line.edit");
-        self.line = String::<EDIT_LENGTH>::new();
+        self.line.clear();// = String::<EDIT_LENGTH>::new();
 
     }
 
@@ -64,39 +69,18 @@ impl LineEdit{//<'_>{
     // or a decimal point or E or +/-, or Enter or Backspace.
     // returns a ResultValue::Float if Enter is pressed, else returns a ResultValue::Str with the current line characters in it.
     pub fn process_number_keys(&mut self, key: KeyName)->Option<ResultValue> { 
-        match key{
-            KeyName::Enter => {
-                info!("Enter key pressed -- in process_number_keys");
-
-                if self.line.chars().last()==Some('E'){
-                    info!("     process_number_keys: line ends with E, so adding a 0");
-                    self.line.push('0').unwrap();
-                }
-                let result = self.line.parse::<f64>();
-
-                self.line.clear();  // Clear the line after processing it
-         
-                if result.is_ok() {
-                    let x: f64 = result.unwrap();
-                    info!("Result is ok, x is {}", x);
-                    return Some(ResultValue::Float(x));
-                } else {
-                    info!("    process_number_keys: result is NOT ok");
-                    return None;
-                }
-        
-            },        
+        match key{     
             
             KeyName::Back => 
                 if self.line.len()>1 {
                     info!("popping a character from the line");
                     self.line.pop();
-                } else {                                                        // !todo else..
+                } else {                                                        
                     self.line.pop();
                     let _ = self.line.push('0');                               // !todo - put current format of zero into self.line
-                    let _ = self.line.push('.');                               // !todo - put current format of zero into self.line
-                    let _ = self.line.push('0');                               // !todo - put current format of zero into self.line
-                    let _ = self.line.push('0');                               // !todo - put current format of zero into self.line
+                    let _ = self.line.push('.');                               // needs a counter based on the current number format.
+                    let _ = self.line.push('0');                               
+                    let _ = self.line.push('0');                               
                 },
             KeyName::E => if !self.line.contains('E') {                // Stops two E's being entered
                                 if self.line.len()<EDIT_LENGTH{         
@@ -154,10 +138,11 @@ impl LineEdit{//<'_>{
             KeyName::Number9 => if self.line.len() < EDIT_LENGTH {self.line.push('9').unwrap()},
 
             _ => (), //todo!()
-        };//} else {};
-        for c in self.line.chars() {
-            info!("process_number_keys: line char: {}", c);
-        }    
+        };
+        
+for c in self.line.chars() {
+    info!("process_number_keys: line char: {}", c);
+}    
         Some(ResultValue::Str(self.line.clone()))
     }
 

@@ -203,87 +203,36 @@ info!("before main loop");
             entry_mode = true;
             pico_led.set_level(Level::High);
             line_edit.clear();
-            let entry_line = line_edit.process_number_keys(key);
+            line_edit.process_number_keys(key);
             display.update_stack_display(line_edit.get_entry_line().into());
             continue;
         }
 
         if entry_mode {
             if WORK_IN_ENTRY_MODE.contains(key) || ENTER_AND_EDIT_ENTRY_MODE.contains(key) {
-                let entry_line = line_edit.process_number_keys(key);
-                match entry_line {
-                    Some(ResultValue::Str(s)) => {
-                        info!("_____main: entry_line is a string");
-                        display.update_stack_display(Some(s.clone()));
-                        // info!("enter entry_line is a string");              
-                     },
-                    Some(ResultValue::Float(f)) => {
-                        info!("_____main: entry_line is a float: {}", f);
-                        Stack::enter_push(f);          
-                        display.update_stack_display(None);
-                        line_edit.clear();
-                        entry_mode = false;
-                        pico_led.set_level(Level::Low);
-
-                    },
-                    None => {
-                        info!("_____main: entry_line is None");
-                        display.update_stack_display(None);
-                    }
-                }
+                line_edit.process_number_keys(key);
                 display.update_stack_display(line_edit.get_entry_line().into());
                 continue;
             } else {    // key that is not about number entry.
                 entry_mode = false;
                 pico_led.set_level(Level::Low);
+                let value: f64 = line_edit.value().unwrap();
+                info!("Value is: {}", value);
+                calculate.push(Some(value));
+                match key {
+                    KeyName::Enter => {
+                        calculate.push(Some(value));
+                        display.update_stack_display(None);
+
+                    }
+                    _=> info!("process_calculate_key: key = {:?}", key),
+                }
+
+
             }
             // let entry_line = line_edit.process_number_keys(key);
             // display.update_stack_display(line_edit.get_entry_line().into());
         } 
-
-// if we're in entry mode, allow work_in_entry_mode keys to be processed, and allow enter_and_edit_entry_mode keys 
-// to be processed, 
-// If we're not in entry mode, then allow all keys to be processed.
-    // If the key is in WORK_IN_ENTRY_MODE, then allow it to be processed
-    //      and switch to entry mode
-    // else 
-    //      process calculate key 
-
-
-        //if key == KeyName::Enter || WORK_IN_ENTRY_MODE.contains(key) || ENTER_AND_EDIT_ENTRY_MODE.contains(key){
-        // if ENTER_AND_EDIT_ENTRY_MODE.contains(key) || entry_mode & WORK_IN_ENTRY_MODE.contains(key) {
-        //     entry_mode = true;
-        //     pico_led.set_level(Level::High);
-        //     info!("_____ Process line edit key: {}", key);
-        //     let mut entry_line = line_edit.process_number_keys(key);    
-        //     match entry_line {
-        //         Some(ResultValue::Str(s)) => {
-        //             info!("main: entry_line is a string");
-        //             display.update_stack_display(Some(s.clone()));
-        //             // info!("enter entry_line is a string");              
-        //          },
-        //         Some(ResultValue::Float(f)) => {
-        //             info!("main: entry_line is a float: {}", f);
-        //             Stack::enter_push(f);          
-        //             display.update_stack_display(None);
-        //             line_edit.clear();
-        //             entry_line = None;  // Clear the entry line after processing it
-        //             entry_mode = false;
-        //             pico_led.set_level(Level::Low);
-
-        //         },
-        //         None => {
-        //             info!("main: entry_line is None");
-        //             display.update_stack_display(None);
-        //         }
-        //     }   
-        // } else {
-        //     info!("_____ Process calulate key: {}", key);
-        //     calculate.process_calculate_key(key);
-        //     display.update_stack_display(None);
-
-        // };        
-
         info!("end of match machine_state loop in main");
     };
 }
