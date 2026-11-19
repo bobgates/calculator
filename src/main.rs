@@ -213,29 +213,47 @@ info!("before main loop");
                 line_edit.process_number_keys(key);
                 display.update_stack_display(line_edit.get_entry_line().into());
                 continue;
-            } else {    // key that is not about number entry.
-                entry_mode = false;
-                pico_led.set_level(Level::Low);
-                let value: f64 = line_edit.value().unwrap();
-                info!("Value is: {}", value);
+            }
+        }     // key that is not about number entry.
+        entry_mode = false;                                 //exiting entry mode
+        pico_led.set_level(Level::Low);
+        let value: f64 = line_edit.value().unwrap();        // get the value of the text line
+        info!("Value is: {}", value);
+        calculate.enter(Some(value));                        // and push it onto the stack
+
+        match key {                                         // now deal with the keys
+            KeyName::Enter => {
                 calculate.push(Some(value));
-                match key {
-                    KeyName::Enter => {
-                        calculate.push(Some(value));
-                        display.update_stack_display(None);
-
-                    }
-                    _=> info!("process_calculate_key: key = {:?}", key),
-                }
-
+                display.update_stack_display(None);
 
             }
-            // let entry_line = line_edit.process_number_keys(key);
-            // display.update_stack_display(line_edit.get_entry_line().into());
-        } 
+            KeyName::Plus => { calculate.process_calculate_key(KeyName::Plus);
+                display.update_stack_display(None);
+
+            }
+            KeyName::Minus => { calculate.process_calculate_key(key);
+                display.update_stack_display(None);
+
+            }                    
+            KeyName::Multiply => { calculate.process_calculate_key(key);
+                display.update_stack_display(None);
+
+            }                    
+            KeyName::Divide => { calculate.process_calculate_key(key);
+                display.update_stack_display(None);
+
+            }KeyName::RollDown => { calculate.process_calculate_key(KeyName::RollDown);
+                display.update_stack_display(None);
+
+            }
+            _ => info!("process_calculate_key: key = {:?}", key),
+        }
+
         info!("end of match machine_state loop in main");
-    };
-}
+    }
+    // let entry_line = line_edit.process_number_keys(key);
+    // display.update_stack_display(line_edit.get_entry_line().into());
+} 
 
 
 // When you hit add, that has to put the current entry line into the stack, 

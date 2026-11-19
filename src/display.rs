@@ -178,7 +178,7 @@ info!("_____________________");
         
         let st = Stack::fetch_all();
 
-info!("x is {}, changed is {}", st.0, st.4);
+info!("x is {}, y is {}, z is {}, t is {}, changed is {}", st.0, st.1, st.2, st.3, st.4);
 
 
         let y_str = num_to_string(ds, &st.1);
@@ -383,7 +383,7 @@ pub fn num_to_string(number_style: DisplayStyle, number: &f64 )->String<EDIT_LEN
 
                 let mut b: String<EDIT_LENGTH>=String::new();
                 // let mut e_pos: Option<i32> = None;
-                info!("Contains E");
+                // info!("Contains E");
                 for (l, c) in a.chars().enumerate(){
                     if c == 'e' {
                         b.push(' ').unwrap();
