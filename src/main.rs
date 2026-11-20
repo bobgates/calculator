@@ -189,37 +189,39 @@ info!("before main loop");
             continue;
         }
         
-        if key == KeyName::E && !entry_mode {   // E gets preceded by 1.
-            entry_mode = true;
-            pico_led.set_level(Level::High);
-            line_edit.clear();
-            line_edit.process_number_keys(KeyName::Number1);
-            line_edit.process_number_keys(KeyName::E);
-            display.update_stack_display(line_edit.get_entry_line().into());
-            continue;
-        }
-
-        if !entry_mode && ENTER_AND_EDIT_ENTRY_MODE.contains(key) {    // take us into entry mode, and process the key
-            entry_mode = true;
-            pico_led.set_level(Level::High);
-            line_edit.clear();
-            line_edit.process_number_keys(key);
-            display.update_stack_display(line_edit.get_entry_line().into());
-            continue;
-        }
-
-        if entry_mode {
-            if WORK_IN_ENTRY_MODE.contains(key) || ENTER_AND_EDIT_ENTRY_MODE.contains(key) {
+        if !entry_mode{
+            info!("NOT entry_mode");
+            if ENTER_AND_EDIT_ENTRY_MODE.contains(key) {    // take us into entry mode, and process the key
+                entry_mode = true;
+                calculate.enter(None);
+                info!("turning entry mode on");
+                pico_led.set_level(Level::High);
+                line_edit.clear();
+                if key == KeyName::E {
+                    line_edit.process_number_keys(KeyName::Number1);    //E gets a 1 in front of it
+                }
                 line_edit.process_number_keys(key);
                 display.update_stack_display(line_edit.get_entry_line().into());
                 continue;
             }
-        }     // key that is not about number entry.
+        } else {    // We're in entry mode
+        info!(".  we're in entry mode");
+            if WORK_IN_ENTRY_MODE.contains(key) || ENTER_AND_EDIT_ENTRY_MODE.contains(key) {
+                info!(".  and we're going to process the key");
+                line_edit.process_number_keys(key);
+                display.update_stack_display(line_edit.get_entry_line().into());
+                continue;
+            }
+        }  
+        
+        // If we get here, we're no longer in entry mode:        
+
         entry_mode = false;                                 //exiting entry mode
         pico_led.set_level(Level::Low);
         let value: f64 = line_edit.value().unwrap();        // get the value of the text line
         info!("Value is: {}", value);
-        calculate.enter(Some(value));                        // and push it onto the stack
+        calculate.enter(Some(value));                        // and set
+
 
         match key {                                         // now deal with the keys
             KeyName::Enter => {
@@ -227,7 +229,7 @@ info!("before main loop");
                 display.update_stack_display(None);
 
             }
-            KeyName::Plus => { calculate.process_calculate_key(KeyName::Plus);
+            KeyName::Plus => { calculate.process_calculate_key(key);
                 display.update_stack_display(None);
 
             }
@@ -242,7 +244,7 @@ info!("before main loop");
             KeyName::Divide => { calculate.process_calculate_key(key);
                 display.update_stack_display(None);
 
-            }KeyName::RollDown => { calculate.process_calculate_key(KeyName::RollDown);
+            }KeyName::RollDown => { calculate.process_calculate_key(key);
                 display.update_stack_display(None);
 
             }
@@ -254,6 +256,11 @@ info!("before main loop");
     // let entry_line = line_edit.process_number_keys(key);
     // display.update_stack_display(line_edit.get_entry_line().into());
 } 
+
+
+// I think that we need a case for what happens when there was no number
+// entry. It mostly seems to work, but if I have a whole stack of 
+// entered numbers, it doesn't manipulate them properly.
 
 
 // When you hit add, that has to put the current entry line into the stack, 

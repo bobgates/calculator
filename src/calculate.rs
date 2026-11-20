@@ -49,6 +49,8 @@ impl <'a>Calculate{
     }
 
 
+    // If value is Some(), push it onto the stack.
+    // otherwise, just push the stack, duplicating x into y
     pub fn push(&mut self, value: Option<f64>){
         // Take a value and push it onto the stack
 
@@ -120,7 +122,8 @@ impl <'a>Calculate{
 
             Stack::set_all(stack.0, stack.1, stack.2, stack.3, stack.4, stack.5);  
             return;
-        } else if key ==KeyName::RollDown{
+        } else if key == KeyName::RollDown{
+            info!("Rolling down");
             let s: f64 = stack.0;
             stack.0 = stack.1;
             stack.1 = stack.2;
