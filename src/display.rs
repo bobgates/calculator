@@ -163,22 +163,34 @@ info!("_____________________");
         self.on
     }
 
-    // Updates the display with the current stack values and the current entry line
-    // if it is active, or stack x value if it is not.
 
-    // Needs to be called after every change to the stack or entry line, 
-    // so that the display is always up to date.
-
-
+    /// Takes an option to an entry line. If you want to show characters
+    /// being added, send the growing string in the option. If you want to
+    /// show the number in the x register, send a None.
+    /// 
+    /// Also uses two globals:
+    /// `DISPLAY_STYLE` and `STACK` (which is accessed through `Stack.get_all()`)
+    /// 
+    /// # Arguments
+    /// * `entry_line` - the input string wrapped in an Option
+    /// 
+    /// # Examples
+    /// ```
+    /// update_stack_display(None); // Writes the whole stack to the screen
+    /// let entry_line = line_edit.process_number_keys(key).into();
+    /// display.update_stack_display(line_edit.get_entry_line); //().into()); // This might be wrong!
+    /// update_stack_display();
+    /// ```
+ 
     pub fn update_stack_display(&mut self, entry_line: Option<String<EDIT_LENGTH>>) {
         
         self.display.clear(BinaryColor::Off);        
 
         let ds = DISPLAY_STYLE.lock().fetch_all();
         
-        let st = Stack::fetch_all();
+        let st = Stack::get_all(); // This doesn't get numbers in current entry...
 
-info!("x is {}, y is {}, z is {}, t is {}, changed is {}", st.0, st.1, st.2, st.3, st.4);
+info!("usd----- x is {}, y is {}, z is {}, t is {}, changed is {}", st.0, st.1, st.2, st.3, st.4);
 
 
         let y_str = num_to_string(ds, &st.1);
@@ -188,23 +200,21 @@ info!("x is {}, y is {}, z is {}, t is {}, changed is {}", st.0, st.1, st.2, st.
         let t_str = num_to_string(ds, &st.3);
         self.draw_one_line(Some(t_str),DisplayLine::T );            
 
-        let x_str = 
+        let mut x_str: String<EDIT_LENGTH> = String::new();
         if entry_line.is_some(){ // We have a string already
-            info!("--- in update_stack_display: entry_line is some");
-            let mut x_str = entry_line.unwrap();
-            x_str.push('_').unwrap();
-            x_str
-        } else {
-            info!("--- in update_stack_display: entry_line is none");
-            num_to_string(ds, &st.0)
-        };
+            info!("--- in update_stack_display: entry_line is some: ");
+            x_str = entry_line.unwrap();
+            
+            for c in x_str.chars() {
+                info!("x_str: {}",c);
+            }
+            let _ = x_str.push('_');
+        }; 
+        
 
 
-// There's an error above. This code works, but more or less the same code
-// in lines above does not.
-
-        info!("about to draw one line");
-        self.draw_one_line(Some(x_str), DisplayLine::X );    
+        info!("about to draw one line into x");
+        self.draw_one_line(Some(x_str), DisplayLine::X );
         self.display.flush().unwrap();       // Flushes internal buffer to the display
 
     }
@@ -233,6 +243,22 @@ info!("x is {}, y is {}, z is {}, t is {}, changed is {}", st.0, st.1, st.2, st.
 //Future<Output = <StringInner<usize, VecStorageInner<[MaybeUninit<u8>; _]>> as Future>::Output>, Iterator<Item = <StringInner<usize, VecStorageInner<[MaybeUninit<u8>; _]>> as Iterator>::Item>, Read, Write
 
 
+
+    /// Draws a number on the stack, given a string representation of the line and a 
+    /// targe display line. The target can take values from DisplayLine::X
+    /// to DisplayLine::T.
+    /// 
+    /// # Arguments
+    /// 
+    /// * `entry_line` - the Option<String> you want to print. If it is none, this
+    ///                  function does nothing, apart from log a whinge.
+    /// * `target` - the line you'd like the number to appear on, DisplayLine::X to DisplayLine::T.
+    /// 
+    /// # Example
+    /// 
+    /// ```
+    /// self.draw_one_line(Some(y_str),  DisplayLine::Y );   
+    /// ```
     pub fn draw_one_line(&mut self, entry_line: Option<String<EDIT_LENGTH>>, target: DisplayLine){   // e_pos: Option<i32>,
   
         // info!("In draw_one_line");
@@ -277,6 +303,32 @@ info!("x is {}, y is {}, z is {}, t is {}, changed is {}", st.0, st.1, st.2, st.
 // a number of significant digits and an f64, and returns a 
 // string with the number in the specified format.
 
+
+/// Converts an f64 into a neatly formatted number.
+/// 
+/// # Arguments
+/// 
+/// * `number_style` - A variable of type DisplayStyle that will ultimately format in:
+///                    all - showing all decimals, 
+///                    Sci(N) - scientific notation (1 digit to the left of the decimal point) and
+///                             the exponent
+///                    Eng(N) - the exponent is always a multiple of 3, which means the 
+///                             mantissa can vary between 1 and 999
+///                     
+/// * `target` - the line you'd like the number to appear on, DisplayLine::X to DisplayLine::T.
+/// DisplayLine::X is at the bottom (the HP has an upward growing stack)
+/// 
+/// # Example
+/// 
+/// ```
+/// let result = num_to_string(Eng(3), 431235);
+///  assert_eq!(result, 431.2E3);
+/// 
+/// 
+/// 
+/// ```
+/// self.draw_one_line(Some(y_str),  DisplayLine::Y );   will place the number on the second row of the 
+/// ```
 pub fn num_to_string(number_style: DisplayStyle, number: &f64 )->String<EDIT_LENGTH>{//}, Option<i32>){
     if *number == 0.0 {
         let mut output: String<EDIT_LENGTH>=format!("").unwrap();
@@ -301,89 +353,8 @@ pub fn num_to_string(number_style: DisplayStyle, number: &f64 )->String<EDIT_LEN
             DisplayStyle::E(sf) => {
                 a = number.format_eng(Some(sf));//.unwrap();
 
-
-        //         // Example = 12345.6789, exponent = 4, sf=3, before_dp = 1, exp = 1, n = 12.3E3
-                
-        //         let exponent: usize = 1 + libm::log10(*number).floor() as usize; 
-        //         //exponent = 5
-                
-        //         let mut before_dp: usize = exponent as usize % 3;  // This gives everything powers for 10^3, 10^-3, etc
-        //         // before_dp = 2 = (5 mod 3)
-
-        //         if before_dp ==0 {before_dp=3}; // If there's nothing before the decimal point, we want to show 
-        //                                         //3 digits after it, so we need to set this to 3
-        //         if before_dp>sf {before_dp=sf}; // If the number of digits before the decimal point is greater
-        //                                         // than the number of significant figures we want to display, 
-        //                                         // we need to reduce to a mutiple of 3 that is less than or equal 
-        //                                         // to the number of significant figures we want to display
-        //         if before_dp<0 {            // If the number before the decimal point is less than 1, 
-        //                                     //we need to add 3 to before_dp to 
-        //                                     // get the number of digits after the decimal point
-        //             before_dp=3+before_dp
-        //         };
-        //         //
-
-        //         let exp: usize = (exponent - before_dp).try_into().unwrap();
-        //         // exp = 5-2 = 3, which is the exponent we want to display in the E notation
-
-                
-        //         // Example: 12345.6789, exponent+1 = 5, sf=3, before_dp = 2, exp = 3, number = 12.3E3
-
-        // info!("exponent is {}, sf is {}, before_dp is {}, exp is {}", exponent, sf, before_dp, exp);
-        // info!("exponent-sf is {}, sf-before_dp is {}", exponent-sf, sf-before_dp);
-
-        //         let n = *number/(10.0_f64).powi((exponent-sf)as i32).trunc()/10_f64.powi((sf-before_dp) as i32);
-        //         // Example: n = 12345.6789/(10^(4-3)) = 1234.56789, trunc = 1234/10^(3-1) = 1234/100 = 12.34
-        // info!("n is {}, exponent is {}, sf is {}, before_dp is {}, exp is {}", n, exponent, sf, before_dp, exp);
-        //         // n=12.34, exp = 3
-
-
-
-        //         // info!("--- {}E{}", n, exp);     // This produces a different string
-        //                                         // to the format statement below,
-        //                                         // info! gives .0 if there are no non-zero decimals
-        //                                         // format just doesn't return no-zero decimals
-
-        //         let precision=  sf - before_dp;
-
-        //         let mut a: String<EDIT_LENGTH> = format!("{0:.1$}E{2}", n, precision, exp).unwrap();
-        //         // let mut a: String<EDIT_LENGTH> = format!("{:.1$}E{}", n, (sf - before_dp), exp).unwrap();
-        //         // {:.1$}E{} means: use the 1st positional argument (index 1) as the precision value.
-        //         // The precision is the second positional argument after the value.
-                
-                
-        //         // self.eline = Some(a.clone());
-
-        //         // sf here is the number of significant figures to display, 
-        //         // but it is being interpreted as the number of decimal places 
-        //         // so we need to fix this the number accordingly
-
-        //         // There's an issue that if the number is an exact integer,
-        //         // it only has one place after the decimal: a zero. We need to 
-        //         // add more zeroes to show the full sig figs.
-                
-        //         // This comes down to subtracting the length of a from sf+1
-        //         // and adding that many zeroes
-        //         // Example: 
-        //         // 100.0
-        //         //.  that's character length 5, sf we want is 5,  so (sf+1)-len = 6-5 =
-        //         // add one zero.
-
-        //         let p = a.find("E").unwrap(); // must succeed, defined two lines above                 
-        //         if !a.contains("."){                                 // Formats numbers with zero after the
-        //             let required = sf+2 - a.len();       // decimal point to have sf zeroes 
-        //             for _i in 0..required {                     // after the decimal point
-        //                 a.insert(p,'0').unwrap();
-        //             }
-        //             a.insert(p, '.').unwrap();
-        //         } 
-
-        //         a
-                // DisplayStruct ::replace_letter(&Some(a.clone()), 'E', ' ');
-
                 let mut b: String<EDIT_LENGTH>=String::new();
-                // let mut e_pos: Option<i32> = None;
-                // info!("Contains E");
+;
                 for (l, c) in a.chars().enumerate(){
                     if c == 'e' {
                         b.push(' ').unwrap();

@@ -61,8 +61,7 @@ pub static STACK: Mutex< Stack> = Mutex::new(Stack(0.0, 0.0, 0.0, 0.0, false, 0)
 
 impl Stack {
     pub fn new(x: f64, y: f64, z: f64, t: f64, changed: bool, index: usize)-> Stack{
-        // let stack = STACK.lock().fetch_all();
-        // stack = 
+        let stack = STACK.lock();//.get_all();
         Stack( x, y, z, t, changed, index )
      }
     
@@ -75,6 +74,24 @@ impl Stack {
         stack.0 = x;
         stack.4 = true;
         // Leaves x in y and in x
+    }
+
+    pub fn push_x() {
+        let mut stack = STACK.lock();//.fetch_all();
+
+        stack.3 = stack.2;
+        stack.2 = stack.1;
+        stack.1 = stack.0;
+        // stack.0 = x;
+        stack.4 = true;
+
+
+        // Leaves x in y and in x
+    }
+
+    pub fn set_x(x: f64){
+        let mut stack = STACK.lock();//.fetch_all();
+        stack.0 = x;
     }
 
     pub fn enter_push( x: f64) {
@@ -106,7 +123,7 @@ impl Stack {
         stack.4
     }
 
-    pub fn fetch_all() -> (f64, f64, f64, f64, bool, usize){
+    pub fn get_all() -> (f64, f64, f64, f64, bool, usize){
         let stack = STACK.lock();//.fetch_all();
         (stack.0, stack.1, stack.2, stack.3, stack.4, stack.5)
     }
@@ -122,7 +139,7 @@ impl Stack {
     }
 
     pub fn swapxy(&mut self){
-        let mut stack = Stack::fetch_all();
+        let mut stack = Stack::get_all();
         let temp = stack.0;
         stack.0 = stack.1;
         stack.1 = temp;

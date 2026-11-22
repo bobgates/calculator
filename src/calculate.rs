@@ -3,8 +3,9 @@ use core::panic;
 use defmt::info;
 
 use crate::keyboard::KeyName;
-use crate::keyboard::OPERATOR_KEYS;
+use crate::keyboard::BINARY_OPERATOR_KEYS;
 use crate::stack::Stack;
+use crate::stack::STACK;
 
 pub struct Calculate {//<'a>
     // temp_stack = 
@@ -23,7 +24,7 @@ impl <'a>Calculate{
     }
 
     pub fn rolldown(&mut self){
-       let mut stack  = Stack::fetch_all();
+       let mut stack  = Stack::get_all();
         let x = stack.0;
         stack.0 = stack.1;
         stack.1 = stack.2;
@@ -32,7 +33,7 @@ impl <'a>Calculate{
         Stack::set_all(stack.0, stack.1, stack.2, stack.3, stack.4, stack.5);  
     }
     pub fn pop(&mut self)->f64{
-       let mut stack  = Stack::fetch_all();
+       let mut stack  = Stack::get_all();
         let x = stack.0;
         stack.0 = stack.1;
         stack.1 = stack.2;
@@ -41,7 +42,7 @@ impl <'a>Calculate{
         x
     }
     pub fn swap_xy(&mut self){
-        let mut stack  = Stack::fetch_all();
+        let mut stack  = Stack::get_all();
         let x = stack.0;
         stack.0 = stack.1;
         stack.1 = x;
@@ -54,14 +55,13 @@ impl <'a>Calculate{
     pub fn push(&mut self, value: Option<f64>){
         // Take a value and push it onto the stack
 
-        let mut stack  = Stack::fetch_all();
+        let mut stack  = Stack::get_all();
         stack.3 = stack.2;
         stack.2 = stack.1;
         stack.1 = stack.0;
         if value.is_some(){
             stack.0 = value.unwrap();
         }
-
         Stack::set_all(stack.0, stack.1, stack.2, stack.3, stack.4, stack.5);  
     }
 
@@ -69,11 +69,11 @@ impl <'a>Calculate{
     // It puts entered number in x, all else stays the same.
 
     pub fn enter(&mut self, value: Option<f64>){
-        let mut stack = Stack::fetch_all();
+        let mut stack = Stack::get_all();
          if value.is_some(){
             stack.0 = value.unwrap();
-        }
-        Stack::set_all(stack.0, stack.1, stack.2, stack.3, stack.4, stack.5);
+            Stack::set_all(stack.0, stack.1, stack.2, stack.3, stack.4, stack.5);
+         }
     }
 
 
@@ -97,13 +97,13 @@ impl <'a>Calculate{
 
 
 
-    pub fn process_calculate_key(&mut self, key: KeyName){
+    pub fn process_binary_operator(&mut self, key: KeyName){      // puts result on s tack
         info!("process_calculate_key: {}", key);    
 
-        let mut stack  = Stack::fetch_all();
-        info!("x = {}, y = {}, z = {}, t = {}", stack.0, stack.1, stack.2, stack.3);
+        let mut stack  = Stack::get_all();
+        info!("! x = {}, y = {}, z = {}, t = {}", stack.0, stack.1, stack.2, stack.3);
 
-        if OPERATOR_KEYS.contains(key){
+        if BINARY_OPERATOR_KEYS.contains(key){
             let x = stack.0;
             let y = stack.1;
             info!("x = {}, y= {}", x, y);
@@ -114,13 +114,13 @@ impl <'a>Calculate{
                 KeyName::Divide => y / x,
                 _ => panic!("process_calculate_key: unknown operator key: {:?}", key),
             }; 
-            info!("Result = {}", result);
+            info!("BINARY_OPERATOR_KEYS Result = {}", result);
             stack.0 = result;
             stack.1 = stack.2;
             stack.2 = stack.3;  
-            info!(">x = {}, y = {}, z = {}, t = {}", stack.0, stack.1, stack.2, stack.3);
+            info!("> x = {}, y = {}, z = {}, t = {}", stack.0, stack.1, stack.2, stack.3);
 
-            Stack::set_all(stack.0, stack.1, stack.2, stack.3, stack.4, stack.5);  
+            Stack::set_all(stack.0, stack.1, stack.2, stack.3, stack.4, stack.5);
             return;
         } else if key == KeyName::RollDown{
             info!("Rolling down");

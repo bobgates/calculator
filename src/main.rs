@@ -7,11 +7,11 @@ use calculate::Calculate;
 
 use core::{cell::RefCell};
 use cortex_m::asm::delay;
-use crate::stack::Stack;
+use crate::{keyboard::KeyName::Number0, stack::Stack};
 
 use {defmt_rtt as _, panic_probe as _};
 
-use defmt::info; //enables info! for debugging;
+use defmt::{info, println}; //enables info! for debugging;
 
 mod display;
 use display::DisplayStruct;
@@ -36,12 +36,12 @@ use embedded_graphics::pixelcolor::BinaryColor;
 use embassy_sync::blocking_mutex::Mutex;
 use embassy_sync::blocking_mutex::raw::NoopRawMutex;
 
-
+use heapless::String;
 mod flash_led;
 use flash_led::FlashLed;
 
 mod keyboard;
-use keyboard::{Keyboard, KeyName, ENTER_AND_EDIT_ENTRY_MODE, WORK_IN_ENTRY_MODE};
+use keyboard::{Keyboard, KeyName, ENTER_AND_EDIT_ENTRY_MODE, WORK_IN_ENTRY_MODE, BINARY_OPERATOR_KEYS};
 
 mod eng_fmt;
 
@@ -52,13 +52,15 @@ use line_edit::ResultValue;
 
 // use portable_atomic::AtomicF64;
 
+use owo_colors::OwoColorize;
+
 use st7565::GraphicsPageBuffer;
 use st7565::displays::DOGL128_6;
 use st7565::ST7565;
 use st7565::modes::GraphicsMode;
 
 mod stack;
-// use crate::stack::STACK;
+use crate::stack::STACK;
 // use crate::stack::Stack;
 
 use {defmt_rtt as _, panic_probe as _};
@@ -95,7 +97,7 @@ async fn main (_spawner: Spawner) {
     pico_led.set_level(Level::Low); // Turn off the LED after flashing
 
 
-
+    let mut state: State=State::Calculating;
 
     let a0 = Output::new(p.PIN_27, Level::Low);   
     let display_config = spi::Config::default();
@@ -114,11 +116,8 @@ async fn main (_spawner: Spawner) {
     
     let stacknames_font = MonoTextStyle::new(&FONT_7X13, BinaryColor::On);
     let e_font = MonoTextStyle::new(&FONT_6X10, BinaryColor::On);
-    let number_style = DisplayStyle::E(4);
+    let number_style = DisplayStyle::E(3);
   
-
-    // let mut stack = Stack::new();
-
     let mut display = DisplayStruct::new(
         display, //: ST7565<SPIInterface<embassy_embedded_hal::shared_bus::blocking::spi::SpiDeviceWithConfig<'a, NoopRawMutex, embassy_rp::spi::Spi<'a, SPI0, embassy_rp::spi::Blocking>, Output<'a>>, Output<'a>>, DOGL128_6, GraphicsMode<'a, 128, 8>, 128, 64, 8>,
         reset_pin,  
@@ -154,12 +153,12 @@ async fn main (_spawner: Spawner) {
     );
 
     // let mut _machine_state: State = State::Entry;
-// info!("before calculate");
+    // info!("before calculate");
     let mut calculate : Calculate = Calculate::new(); 
-// info!("after calculate");
+    // info!("after calculate");
 
     display.set_number_style(DisplayStyle::E(3));
-// info!("after calculate and set number style");
+    // info!("after calculate and set number style");
 
     display.update_stack_display(None);     // Put out initial stack display - all zeros, no entry line
     let mut line_edit = LineEdit::new();
@@ -167,8 +166,10 @@ async fn main (_spawner: Spawner) {
 
     // let mut skip_key = false;  // Can't remember why I wanted to do this?
     // let mut editing : bool = false;
-info!("before main loop");
+    info!("before main loop");
 
+    // flash_led::FlashLed::new()
+    
     let mut entry_mode = false;
     pico_led.set_level(Level::Low);
     delay(30_000_000);
@@ -177,7 +178,7 @@ info!("before main loop");
     pico_led.set_level(Level::Low);
 
     // ******************************************************************************************** //
-    loop{
+    'outer: loop{
         delay(1_000_000); //100E6 is about once per second
         let key = match keyboard.scan().await {
             Some(k) => k,
@@ -188,74 +189,85 @@ info!("before main loop");
             display.set_on(!display.is_on());
             continue;
         }
-        
-        if !entry_mode{
-            info!("NOT entry_mode");
-            if ENTER_AND_EDIT_ENTRY_MODE.contains(key) {    // take us into entry mode, and process the key
-                entry_mode = true;
-                calculate.enter(None);
-                info!("turning entry mode on");
-                pico_led.set_level(Level::High);
-                line_edit.clear();
-                if key == KeyName::E {
-                    line_edit.process_number_keys(KeyName::Number1);    //E gets a 1 in front of it
-                }
-                line_edit.process_number_keys(key);
-                display.update_stack_display(line_edit.get_entry_line().into());
-                continue;
+
+        info!("Outside inner loop, key is {}", key);
+
+        'inner: loop {
+            let mut repeat = true;
+
+            info!("\n\nInside inner loop, key is {}", key);
+
+            repeat = false;
+            match state {
+                State::Entry => {             
+                    info!("***  entry mode");
+                    if WORK_IN_ENTRY_MODE.contains(key) || ENTER_AND_EDIT_ENTRY_MODE.contains(key) {
+                        info!(">>>>  and we're going to process the key {}",key);
+                        line_edit.process_number_keys(key);
+
+                        display.update_stack_display(line_edit.get_entry_line().into());
+                        break 'inner;
+                    } else if key == KeyName::Enter{
+                        info!(" within Enter in entry mode");
+                        let s = Stack::get_all();
+                        info!("stack: x = {}, y = {}, z = {}, t = {}", s.0, s.1, s.2, s.3 );
+                        Stack::push_x();
+                        display.update_stack_display(None);
+
+
+                    } else {
+                        info!("*** leaving entry for calculating");
+                        let x    = line_edit.value();  
+                        info!("x is {}", x); 
+                        if key == KeyName::Enter {
+                            info!("enter, enter, enter/, enter, enter, enter");
+                            display.update_stack_display(None);
+                        }
+                        Stack::set_x(x.unwrap());
+                        display.update_stack_display(line_edit.get_entry_line().into());        
+                        state = State::Calculating;  
+                        
+                    }
+                },
+                State::Calculating => {
+                    info!("*** calculating mode");
+                    if ENTER_AND_EDIT_ENTRY_MODE.contains(key) {    // take us into entry mode, and process the key
+                        info!("*** turning entry mode on");
+                        pico_led.set_level(Level::High);
+                        info!("--   before line clear");
+                        line_edit.clear();
+                        repeat = true;
+                        state = State::Entry;
+                        info!("*** Leaving calculating for entry");
+                    } else {
+                        info!("Just calculating");
+                        calculate.push(None);       // Pushes X into Y and keeps it in X   
+                        if key == KeyName::E {
+                            line_edit.process_number_keys(KeyName::Number1);    //E gets a 1 in front of it
+                        } else if key == KeyName::DecimalPoint{
+                            line_edit.process_number_keys(KeyName::Number0);    // A decimal point gets a 0 in front of it.
+                        };
+                        line_edit.process_number_keys(key);
+                        display.update_stack_display(line_edit.get_entry_line().into());  
+                        // break 'inner;
+                    }
+                }          
             }
-        } else {    // We're in entry mode
-        info!(".  we're in entry mode");
-            if WORK_IN_ENTRY_MODE.contains(key) || ENTER_AND_EDIT_ENTRY_MODE.contains(key) {
-                info!(".  and we're going to process the key");
-                line_edit.process_number_keys(key);
-                display.update_stack_display(line_edit.get_entry_line().into());
-                continue;
-            }
-        }  
-        
-        // If we get here, we're no longer in entry mode:        
+            if repeat == false {break 'inner}
 
-        entry_mode = false;                                 //exiting entry mode
-        pico_led.set_level(Level::Low);
-        let value: f64 = line_edit.value().unwrap();        // get the value of the text line
-        info!("Value is: {}", value);
-        calculate.enter(Some(value));                        // and set
-
-
-        match key {                                         // now deal with the keys
-            KeyName::Enter => {
-                calculate.push(Some(value));
-                display.update_stack_display(None);
-
-            }
-            KeyName::Plus => { calculate.process_calculate_key(key);
-                display.update_stack_display(None);
-
-            }
-            KeyName::Minus => { calculate.process_calculate_key(key);
-                display.update_stack_display(None);
-
-            }                    
-            KeyName::Multiply => { calculate.process_calculate_key(key);
-                display.update_stack_display(None);
-
-            }                    
-            KeyName::Divide => { calculate.process_calculate_key(key);
-                display.update_stack_display(None);
-
-            }KeyName::RollDown => { calculate.process_calculate_key(key);
-                display.update_stack_display(None);
-
-            }
-            _ => info!("process_calculate_key: key = {:?}", key),
         }
-
-        info!("end of match machine_state loop in main");
+ 
     }
+
+
+        // info!("--------------------------------------------------------end of match machine_state loop in main");
+        // let stack = Stack::get_all();   ;//.fetch_all();
+        // info!("x: {}, y: {}, z: {}, t: {}", stack.0, stack.1, stack.2, stack.3);
+        // info!("")
+}
     // let entry_line = line_edit.process_number_keys(key);
     // display.update_stack_display(line_edit.get_entry_line().into());
-} 
+
 
 
 // I think that we need a case for what happens when there was no number

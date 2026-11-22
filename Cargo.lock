@@ -129,6 +129,7 @@ dependencies = [
  "heapless 0.9.3",
  "libm",
  "no-std-compat2",
+ "owo-colors",
  "panic-probe",
  "portable-atomic",
  "profont",
@@ -1000,6 +1001,12 @@ name = "once_cell"
 version = "1.20.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "1261fe7e33c73b354eab43b1273a57c8f967d0391e80353e51f764ac02cf6775"
+
+[[package]]
+name = "owo-colors"
+version = "4.4.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "13c45bb4a6ae1280ec0803b1ef9d3455eb50f01efbbe1447ab020f1d54fba9d8"
 
 [[package]]
 name = "panic-probe"

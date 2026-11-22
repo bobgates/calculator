@@ -16,9 +16,10 @@ use enumset::{enum_set, EnumSet, EnumSetType};
 //     Cos,//     Tan,//     Enter,//     XswapY,//     PlusMinus,//     E,//     Back,
 //     Up,//     Down,//     Orange,//     OnOff,//     DecimalPoint,//     RunStop,
 //     Plus,//     Minus,//     Divide,//     Multiply,//     Number(u8),//     Error,// }
-#[derive(EnumSetType, Debug, Format)]
+
 
 // Setting the first to a number starts an auto-numbering system
+#[derive(EnumSetType, Debug, Format)]
 pub enum KeyName{
     Number0=0, 
     Number1,
@@ -71,7 +72,7 @@ pub const ENTER_AND_EDIT_ENTRY_MODE: EnumSet<KeyName> = enum_set!(
     KeyName::Number3 |  KeyName::Number4 |  KeyName::Number5 |  // and take you into number entry mode
     KeyName::Number6 |  KeyName::Number7 |  KeyName::Number8 |  
     KeyName::Number9 | KeyName::DecimalPoint | 
-    KeyName::E | KeyName::Back);
+    KeyName::E );
 
 pub const WORK_IN_ENTRY_MODE: EnumSet<KeyName> = enum_set!( KeyName::PlusMinus | KeyName::Back ); // Works in number mode
 
@@ -86,7 +87,7 @@ static ROW_COL_MAP: [[KeyName; 6]; 8] = [
     [KeyName::Fn1, KeyName::Fn2, KeyName::Fn3, KeyName::Fn4, KeyName::Fn5, KeyName::Fn6]
 ];
 
-pub const OPERATOR_KEYS:  EnumSet<KeyName> = enum_set!(
+pub const BINARY_OPERATOR_KEYS:  EnumSet<KeyName> = enum_set!(
     KeyName::Plus | KeyName::Minus | KeyName::Multiply | 
     KeyName::Divide 
 );

@@ -52,6 +52,7 @@ profont = "0.7.0"
 portable-atomic = { version = "1.15.0", default-features = false, features = ["float"]}    #  "unsafe-assume-single-core"]}
 no-std-compat2 = {version="0.4.5"}
 spin = "0.12.3"
+owo-colors = "4.4.0"
 # eng_fmt = "0.1.2"
 
 
