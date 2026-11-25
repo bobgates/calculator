@@ -66,9 +66,9 @@ impl LineEdit{
     }
 
     // Only called in Entry mode, so we know that the key is a number 
-    // or a decimal point or E or +/-, or Enter or Backspace.
-    // returns a ResultValue::Float if Enter is pressed, else returns a ResultValue::Str with the current line characters in it.
-    pub fn process_number_keys(&mut self, key: KeyName)->Option<ResultValue> { 
+    // or a decimal point or E or +/-, or Enter or Backspace. Returns
+    // a string
+    pub fn process_number_keys(&mut self, key: KeyName)->String<EDIT_LENGTH> { 
         match key{         
             KeyName::Back => 
                 if self.line.len()>1 {
@@ -138,11 +138,11 @@ impl LineEdit{
 
             _ => (), //todo!()
         };
-        
-for c in self.line.chars() {
-    info!("line_edit::process_number_keys: line char: {}", c);
-}    
-        Some(ResultValue::Str(self.line.clone()))
+                
+        for c in self.line.chars() {
+            info!("line_edit::process_number_keys: line char: {}", c);
+        }    
+        self.line.clone()
     }
 
 

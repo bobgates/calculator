@@ -209,15 +209,21 @@ info!("usd----- x is {}, y is {}, z is {}, t is {}, changed is {}", st.0, st.1, 
                 info!("x_str: {}",c);
             }
             let _ = x_str.push('_');
-        }; 
+            info!("--- leaving usd");
+        } else {
+            x_str = num_to_string(ds, &st.0);
+        }
+        self.draw_one_line(Some(x_str),  DisplayLine::X );    
+        self.display.flush().unwrap();          
         
-
-
-        info!("about to draw one line into x");
-        self.draw_one_line(Some(x_str), DisplayLine::X );
-        self.display.flush().unwrap();       // Flushes internal buffer to the display
-
     }
+
+
+        // info!("about to draw one line into x");
+        // self.draw_one_line(Some(x_str), DisplayLine::X );
+       // Flushes internal buffer to the display
+
+    
 
 
     // returns string with letter replaced. Used to replace E with a space
@@ -296,8 +302,8 @@ info!("usd----- x is {}, y is {}, z is {}, t is {}, changed is {}", st.0, st.1, 
         let (_line, _e_pos)= self.replace_letter(&line, ' ', 'E');
 
     }
-}
 
+}
 
 // Takes a number style, essentially Eng, Sci or Fixed and
 // a number of significant digits and an f64, and returns a 

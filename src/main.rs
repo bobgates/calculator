@@ -97,7 +97,7 @@ async fn main (_spawner: Spawner) {
     pico_led.set_level(Level::Low); // Turn off the LED after flashing
 
 
-    let mut state: State=State::Calculating;
+    let mut state: State=State::Entry;
 
     let a0 = Output::new(p.PIN_27, Level::Low);   
     let display_config = spi::Config::default();
@@ -178,6 +178,9 @@ async fn main (_spawner: Spawner) {
     pico_led.set_level(Level::Low);
 
     // ******************************************************************************************** //
+    state = State::Calculating;
+
+    
     'outer: loop{
         delay(1_000_000); //100E6 is about once per second
         let key = match keyboard.scan().await {
@@ -189,6 +192,64 @@ async fn main (_spawner: Spawner) {
             display.set_on(!display.is_on());
             continue;
         }
+
+        if state != State::Entry {             
+            if ENTER_AND_EDIT_ENTRY_MODE.contains(key) {
+                state = State::Entry;
+                pico_led.set_level(Level::High);
+                line_edit.clear();
+                info!(">>>>  We're going to process the key {} and start number entry",key);
+                line_edit.process_number_keys(key);
+                
+                display.update_stack_display(line_edit.get_entry_line().into());
+            }
+        } else {
+            if WORK_IN_ENTRY_MODE.contains(key) {
+                info!("HERE");
+                line_edit.process_number_keys(key);
+                let le =        line_edit.value();
+                info!("le = {}", le);
+                display.update_stack_display(line_edit.get_entry_line().into());
+            } else {
+                state = State::Calculating;
+                pico_led.set_level(Level::High);
+
+
+            }
+        }
+        
+        
+        
+        // else { // State is Entry
+        //     if WORK_IN_ENTRY_MODE.contains(key) || ENTER_AND_EDIT_ENTRY_MODE.contains(key) {
+        //         info!(">>>> We're in entry mode processing {}", key);
+        //         line_edit.process_number_keys(key);
+        //         line_edit.value();
+        //         display.update_stack_display(line_edit.get_entry_line().into());
+        //     } else {
+        //         state = State::Calculating;
+        //         display.update_stack_display(None);
+        //         info!("Going to calculate");
+        //         // Something else has come along to spoil the party
+        //     }
+        // }
+    }
+}
+        
+
+
+
+
+
+
+
+
+
+
+
+
+/* 
+
 
         info!("Outside inner loop, key is {}", key);
 
@@ -254,17 +315,14 @@ async fn main (_spawner: Spawner) {
                 }          
             }
             if repeat == false {break 'inner}
-
-        }
+*/
+        // }
  
-    }
-
-
         // info!("--------------------------------------------------------end of match machine_state loop in main");
         // let stack = Stack::get_all();   ;//.fetch_all();
         // info!("x: {}, y: {}, z: {}, t: {}", stack.0, stack.1, stack.2, stack.3);
         // info!("")
-}
+// }
     // let entry_line = line_edit.process_number_keys(key);
     // display.update_stack_display(line_edit.get_entry_line().into());
 
