@@ -202,14 +202,14 @@ info!("usd----- x is {}, y is {}, z is {}, t is {}, changed is {}", st.0, st.1, 
 
         let mut x_str: String<EDIT_LENGTH> = String::new();
         if entry_line.is_some(){ // We have a string already
-            info!("--- in update_stack_display: entry_line is some: ");
+            // info!("--- in update_stack_display: entry_line is some: ");
             x_str = entry_line.unwrap();
             
             for c in x_str.chars() {
                 info!("x_str: {}",c);
             }
             let _ = x_str.push('_');
-            info!("--- leaving usd");
+            // info!("--- leaving usd");
         } else {
             x_str = num_to_string(ds, &st.0);
         }

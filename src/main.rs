@@ -198,23 +198,31 @@ async fn main (_spawner: Spawner) {
                 state = State::Entry;
                 pico_led.set_level(Level::High);
                 line_edit.clear();
-                info!(">>>>  We're going to process the key {} and start number entry",key);
-                line_edit.process_number_keys(key);
-                
-                display.update_stack_display(line_edit.get_entry_line().into());
+                info!(">>>>  We're going to start number entry with {}",key);
+                // line_edit.process_number_keys(key);
+
+                // display.update_stack_display(line_edit.get_entry_line().into());
             }
-        } else {
+        }
+
+        if state == State::Entry {
             if WORK_IN_ENTRY_MODE.contains(key) {
                 info!("HERE");
+                info!("Processing: {}", key);
                 line_edit.process_number_keys(key);
-                let le =        line_edit.value();
-                info!("le = {}", le);
+                info!("Now HERE");
                 display.update_stack_display(line_edit.get_entry_line().into());
             } else {
+                info!("Leaving entry mode");
+                let le = line_edit.value();
+                if le.is_some(){
+                    Stack::set_x(le.unwrap());
+                    display.update_stack_display(None);
+                }
+                info!("le = {}", le);
+
                 state = State::Calculating;
-                pico_led.set_level(Level::High);
-
-
+                pico_led.set_level(Level::Low);
             }
         }
         

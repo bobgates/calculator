@@ -69,6 +69,7 @@ impl LineEdit{
     // or a decimal point or E or +/-, or Enter or Backspace. Returns
     // a string
     pub fn process_number_keys(&mut self, key: KeyName)->String<EDIT_LENGTH> { 
+        info!("Entered process_number_keys with {}", key);
         match key{         
             KeyName::Back => 
                 if self.line.len()>1 {
