@@ -9,10 +9,13 @@ use spin::Mutex;
 
 #[derive(Copy, Clone)]
 pub struct Stack(f64, f64, f64, f64, bool, usize);
+pub struct Last_x(f64);
 
 pub static DISPLAY_STYLE: Mutex<DisplayStyle> = Mutex::new(DisplayStyle::E(4));
 
 pub static STACK: Mutex< Stack> = Mutex::new(Stack(0.0, 0.0, 0.0, 0.0, false, 0));
+
+pub static LAST_X: Mutex <f64> = Mutex::new(0.0);
 
 // const NUMBERS_A: &'static [f64] = &[
 //     123456789.0,
@@ -58,6 +61,15 @@ pub static STACK: Mutex< Stack> = Mutex::new(Stack(0.0, 0.0, 0.0, 0.0, false, 0)
 //     0.0,
 // ];
 
+pub fn set_lastx(lx: f64) {
+    let mut value = LAST_X.lock();
+    *value = lx;
+}
+
+pub fn get_lastx()-> f64{
+    let mut lx  = LAST_X.lock();//.fetch_all();      
+    *lx
+}
 
 impl Stack {
     pub fn new(x: f64, y: f64, z: f64, t: f64, changed: bool, index: usize)-> Stack{
@@ -145,6 +157,8 @@ impl Stack {
         stack.1 = temp;
         Stack::set_all(stack.0, stack.1, stack.2, stack.3, stack.4, stack.5);
     }
+
+
 
     // pub fn do_operator<F>(a:f64, b:f64, operator: F)->F 
     // where 

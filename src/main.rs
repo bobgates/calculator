@@ -60,7 +60,8 @@ use st7565::ST7565;
 use st7565::modes::GraphicsMode;
 
 mod stack;
-use crate::stack::STACK;
+// use crate::stack::STACK;
+// use crate::stack::LAST_X;
 // use crate::stack::Stack;
 
 use {defmt_rtt as _, panic_probe as _};
@@ -198,12 +199,17 @@ async fn main (_spawner: Spawner) {
                 state = State::Entry;
                 pico_led.set_level(Level::High);
                 line_edit.clear();
+
                 info!(">>>>  We're going to start number entry with {}",key);
                 // line_edit.process_number_keys(key);
 
                 // display.update_stack_display(line_edit.get_entry_line().into());
             }
         }
+
+        // Next: hitting anything stops entry, but now I need to take action
+        // according to what is pressed. For example, Enter would push X,
+        // duplicating it into Y 
 
         if state == State::Entry {
             if WORK_IN_ENTRY_MODE.contains(key) {
@@ -214,15 +220,28 @@ async fn main (_spawner: Spawner) {
                 display.update_stack_display(line_edit.get_entry_line().into());
             } else {
                 info!("Leaving entry mode");
-                let le = line_edit.value();
-                if le.is_some(){
-                    Stack::set_x(le.unwrap());
-                    display.update_stack_display(None);
-                }
-                info!("le = {}", le);
-
                 state = State::Calculating;
                 pico_led.set_level(Level::Low);
+                let line = line_edit.value();
+
+                if line.is_some(){
+                    Stack::set_x(line.unwrap());
+                    // let x: f64 = Stack::get_all().0;
+                    info!("x is {}", Stack::get_all().0);
+                    stack::set_lastx(line.unwrap());
+                   
+                    match key {
+                        KeyName::Enter => Stack::push_x(),
+                        KeyName::Plus => calculate.process_binary_operator(KeyName::Plus),
+                        KeyName::Minus => calculate.process_binary_operator(KeyName::Minus),
+                        KeyName::Multiply => calculate.process_binary_operator(KeyName::Multiply),
+                        KeyName::Divide => calculate.process_binary_operator(KeyName::Divide),
+                        _ => {info!("Key: {} is not yet implemented",key)},
+                    }
+                    display.update_stack_display(None);
+                }
+
+
             }
         }
         
